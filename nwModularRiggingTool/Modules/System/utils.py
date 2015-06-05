@@ -60,3 +60,14 @@ def FindHighestTrailingNumber(_names, _basename):
     
     
     return highestValue
+
+
+
+def StripLeadingNamespace(_nodeName):
+    
+    if str(_nodeName).find(':') == -1:
+        return None
+    
+    splitString = str(_nodeName).partition(':')
+    
+    return [splitString[0], splitString[2]]

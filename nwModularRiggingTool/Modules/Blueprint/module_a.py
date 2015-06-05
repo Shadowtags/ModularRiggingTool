@@ -1,4 +1,5 @@
 import pymel.core as pm
+import System.utils as utils
 import os
 
 CLASS_NAME = "ModuleA"
@@ -62,4 +63,42 @@ class ModuleA():
         
         pm.parent(joints[0], self.jointsGrp, absolute = True)
         
+        
+        translationControls = []
+        for joint in joints:
+            translationControls.append(self.CreateTransationControlAtJoint(joint))
+        
+        
         pm.lockNode(self.containerName, lock = True, lockUnpublished = True)
+    
+    
+    
+    def CreateTransationControlAtJoint(self, _joint):
+        
+        posControlFile = "%s/ControlObjects/Blueprint/translation_control.ma" %os.environ["RIGGING_TOOL_ROOT"]
+        pm.importFile(posControlFile)
+        
+        container = pm.rename("translation_control_container", "%s_translation_control_container" %_joint)
+        pm.container(self.containerName, edit = True, addNode = container)
+        
+        
+        for node in pm.container(container, query = True, nodeList = True):
+            pm.rename(node, "%s_%s" %(_joint, node), ignoreShape = True)
+        
+        
+        control = "%s_translation_control" %_joint
+        
+        jointPos = pm.xform(_joint, query = True, worldSpace = True, translation = True)
+        pm.xform(control, worldSpace = True, absolute = True, translation = jointPos)
+        
+        niceName = utils.StripLeadingNamespace(_joint)[1]
+        attrName = "%s_T" %niceName
+        
+        pm.container(container, edit = True, publishAndBind = ["%s.translate" %control, attrName])
+        pm.container(self.containerName, edit = True, publishAndBind = ["%s.%s" %(container, attrName), attrName])
+        
+        return control
+    
+    
+    def GetTranslationControl(self, _jointName):
+        return "%s_translation_control" %_jointName
