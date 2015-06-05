@@ -86,10 +86,26 @@ class Blueprint_UI:
     
     def InstallModule(self, _module, *args):
         
+        basename = "instance_"
+        
+        pm.namespace(setNamespace = ':')
+        namespaces = pm.namespaceInfo(listOnlyNamespaces = True)
+        
+        
+        for i in range(len(namespaces)):
+            if namespaces[i].find("__") != -1:
+                namespaces[i] = namespaces[i].rpartition("__")[2]
+        
+        
+        newSuffix = utils.FindHighestTrailingNumber(namespaces, basename) + 1
+        
+        userSpecName = basename + str(newSuffix)
+        
+        
         mod = __import__("Blueprint.%s" %_module, (), (), [_module])
         reload(mod)
         
         moduleClass = getattr(mod, mod.CLASS_NAME)
-        moduleInstance = moduleClass()
+        moduleInstance = moduleClass(userSpecName)
         
         moduleInstance.Install()

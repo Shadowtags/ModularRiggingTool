@@ -39,3 +39,24 @@ def FindAllFiles(_relativeDirectory, _fileExtension):
     
     
     return returnFiles
+
+
+def FindHighestTrailingNumber(_names, _basename):
+    
+    import re
+    
+    
+    highestValue = 0
+    
+    for n in _names:
+        if n.find(_basename) == 0:
+            suffix = n.partition(_basename)[2]
+            
+            if re.match("^[0-9]*$", suffix):
+                numericalElement = int(suffix)
+                
+                if numericalElement > highestValue:
+                    highestValue = numericalElement
+    
+    
+    return highestValue
