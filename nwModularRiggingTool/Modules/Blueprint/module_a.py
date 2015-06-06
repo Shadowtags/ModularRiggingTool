@@ -130,11 +130,11 @@ class ModuleA():
         pm.parent(poleVectorLocatorGrp, self.moduleGrp, absolute = True)
         parentConstraint = pm.parentConstraint(parentTranslationControl, poleVectorLocatorGrp, maintainOffset = False)
         
-        pm.setAttr("%s.visibility" %poleVectorLocator)
+        pm.setAttr("%s.visibility" %poleVectorLocator, 0)
         pm.setAttr("%s.ty" %poleVectorLocator, -0.5)
         
         
-        ikNodes = utils.BasicStrechyIK(_parentJoint, _childJoint, _container = self.containerName, _lockMinimumLength = False, _poleVectorObject = poleVectorLocator, _scaleCorrectionAttribute = None)
+        ikNodes = utils.BasicStretchyIK(_parentJoint, _childJoint, _container = self.containerName, _lockMinimumLength = False, _poleVectorObject = poleVectorLocator, _scaleCorrectionAttribute = None)
         ikHandle = ikNodes["ikHandle"]
         rootLocator = ikNodes["rootLocator"]
         endLocator = ikNodes["endLocator"]

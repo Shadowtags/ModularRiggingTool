@@ -74,9 +74,52 @@ def StripLeadingNamespace(_nodeName):
     return [splitString[0], splitString[2]]
 
 
-def BasicStrechyIK(_rootJoint, _endJoint, _container = None, _lockMinimumLength = True, _poleVectorObject = None, _scaleCorrectionAttribute = None):
+
+def StripAllNameSpaces(_nodeName):
+    
+    if str(_nodeName).find(':') == -1:
+        return None
+    
+    splitString = str(_nodeName).rpartition(':')
+    
+    return [splitString[0], splitString[2]]
+
+
+
+
+def BasicStretchyIK(_rootJoint, _endJoint, _container = None, _lockMinimumLength = True, _poleVectorObject = None, _scaleCorrectionAttribute = None):
+    
+    from math import fabs
     
     containedNodes = []
+    
+    totalOriginalLength = 0
+    done = False
+    parent = _rootJoint
+    
+    childJoints = []
+    
+    # Measure and store length of each joint segment in joint chain
+    while not done:
+        children = pm.listRelatives(parent, children = True)
+        children = pm.ls(children, type = 'joint')
+        
+        # Loop until end of joint chain
+        if len(children) == 0:
+            done = True
+        
+        else:
+            child = children[0]
+            childJoints.append(child)
+            
+            totalOriginalLength += fabs(pm.getAttr("%s.translateX" %child))
+            
+            parent = child
+            
+            if child == _endJoint:
+                done = True
+    
+    
     
     # Create RP IK on joint chain
     ikNodes = pm.ikHandle(startJoint = _rootJoint, endEffector = _endJoint, solver = 'ikRPsolver', name = "%s_ikHandle" %_rootJoint)
@@ -87,6 +130,8 @@ def BasicStrechyIK(_rootJoint, _endJoint, _container = None, _lockMinimumLength 
     pm.setAttr("%s.visibility" %ikHandle, 0)
     
     containedNodes.extend(ikNodes)
+    
+    
     
     # Create polevector locator
     if _poleVectorObject == None:
@@ -103,6 +148,8 @@ def BasicStrechyIK(_rootJoint, _endJoint, _container = None, _lockMinimumLength 
     poleVectorConstraint = pm.poleVectorConstraint(_poleVectorObject, ikHandle)
     containedNodes.append(poleVectorConstraint)
     
+    
+    
     # Create root and end locators
     rootLocator = pm.spaceLocator(name = "%s_rootPosLocator" %_rootJoint)
     rootLocator_pointConstraint = pm.pointConstraint(_rootJoint, rootLocator, maintainOffset = False, name = "%s_pointConstraint" %rootLocator)
@@ -115,6 +162,45 @@ def BasicStrechyIK(_rootJoint, _endJoint, _container = None, _lockMinimumLength 
     
     pm.setAttr("%s.visibility" %rootLocator, 0)
     pm.setAttr("%s.visibility" %endLocator, 0)
+    
+    
+    
+    # Create distance between node between locators
+    rootLocatorWithoutNamespace = StripAllNameSpaces(rootLocator)[1]
+    endLocatorWithoutNamespace = StripAllNameSpaces(endLocator)[1]
+    
+    moduleNamespace = StripAllNameSpaces(_rootJoint)[0]
+    
+    distNode = pm.shadingNode('distanceBetween', asUtility = True, name = "%s:distBetween_%s_%s" %(moduleNamespace, rootLocatorWithoutNamespace, endLocatorWithoutNamespace))
+    containedNodes.append(distNode)
+    
+    pm.connectAttr("%sShape.worldPosition[0]" %rootLocator, "%s.point1" %distNode)
+    pm.connectAttr("%sShape.worldPosition[0]" %endLocator, "%s.point2" %distNode)
+    
+    scaleAttr = "%s.distance" %distNode
+    
+    
+    # Divide distance by total original length
+    scaleFactor = pm.shadingNode('multiplyDivide', asUtility = True, name = "%s_scaleFactor" %ikHandle)
+    containedNodes.append(scaleFactor)
+    
+    pm.setAttr("%s.operation" %scaleFactor, 2) # divide
+    pm.connectAttr(scaleAttr, "%s.input1X" %scaleFactor)
+    pm.setAttr("%s.input2X" %scaleFactor, totalOriginalLength)
+    
+    translationDriver = "%s.outputX" %scaleFactor
+    
+    
+    # Connect joint to stretchy calculations
+    for joint in childJoints:
+        multNode = pm.shadingNode('multiplyDivide', asUtility = True, name = "%s_scaleMultiply" %joint)
+        containedNodes.append(multNode)
+        
+        pm.setAttr("%s.input1X" %multNode, pm.getAttr("%s.translateX" %joint))
+        pm.connectAttr(translationDriver, "%s.input2X" %multNode)
+        pm.connectAttr("%s.outputX" %multNode, "%s.translateX" %joint)
+    
+    
     
     if _container != None:
         AddNodeToContainer(_container, containedNodes, _includeHierarchyBelow = True)
