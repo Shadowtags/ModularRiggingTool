@@ -75,7 +75,7 @@ def StripLeadingNamespace(_nodeName):
 
 
 
-def StripAllNameSpaces(_nodeName):
+def StripAllNamespaces(_nodeName):
     
     if str(_nodeName).find(':') == -1:
         return None
@@ -166,10 +166,10 @@ def BasicStretchyIK(_rootJoint, _endJoint, _container = None, _lockMinimumLength
     
     
     # Create distance between node between locators
-    rootLocatorWithoutNamespace = StripAllNameSpaces(rootLocator)[1]
-    endLocatorWithoutNamespace = StripAllNameSpaces(endLocator)[1]
+    rootLocatorWithoutNamespace = StripAllNamespaces(rootLocator)[1]
+    endLocatorWithoutNamespace = StripAllNamespaces(endLocator)[1]
     
-    moduleNamespace = StripAllNameSpaces(_rootJoint)[0]
+    moduleNamespace = StripAllNamespaces(_rootJoint)[0]
     
     distNode = pm.shadingNode('distanceBetween', asUtility = True, name = "%s:distBetween_%s_%s" %(moduleNamespace, rootLocatorWithoutNamespace, endLocatorWithoutNamespace))
     containedNodes.append(distNode)

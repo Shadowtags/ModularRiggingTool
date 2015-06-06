@@ -32,7 +32,8 @@ class ModuleA():
         
         self.jointsGrp = pm.group(empty = True, name = "%s:joints_grp" %self.moduleNamespace)
         self.hierarchyRepresentationGrp = pm.group(empty = True, name = "%s:hierarchyRepresentation_grp" %self.moduleNamespace)
-        self.moduleGrp = pm.group([self.jointsGrp, self.hierarchyRepresentationGrp], name = "%s:module_grp" %self.moduleNamespace)
+        self.orientationGrp = pm.group(empty = True, name = "%s:orientationControls_grp" %self.moduleNamespace)
+        self.moduleGrp = pm.group([self.jointsGrp, self.hierarchyRepresentationGrp, self.orientationGrp], name = "%s:module_grp" %self.moduleNamespace)
         
         pm.container(name = self.containerName, addNode = self.moduleGrp, includeHierarchyBelow = True)
         
@@ -91,6 +92,10 @@ class ModuleA():
         # Setup strechy joint segment
         for index in range(len(joints) - 1):
             self.SetupStrechyJointSegment(joints[index], joints[index + 1])
+        
+        
+        # NON DEFAULT FUNCTUNALITY
+        self.CreateOrientationControl(joints[0], joints[1])
         
         
         # Lock down unpublished module attributes
@@ -237,3 +242,34 @@ class ModuleA():
         pm.container(self.containerName, edit = True, publishAndBind = ["%s.translate" %self.moduleTransform, "moduleTransform_T"])
         pm.container(self.containerName, edit = True, publishAndBind = ["%s.rotate" %self.moduleTransform, "moduleTransform_R"])
         pm.container(self.containerName, edit = True, publishAndBind = ["%s.globalScale" %self.moduleTransform, "moduleTransform_globalScale"])
+    
+    
+    
+    
+    def DeleteHierarchyRepresentation(self, _parentJoint):
+        
+        hierarchyContainer = "%s_hierarchy_representation_container" %_parentJoint
+        pm.delete(hierarchyContainer)
+    
+    
+    
+    def CreateOrientationControl(self, _parentJoint, _childJoint):
+        
+        # Delete default hierarchy representation nodes
+        self.DeleteHierarchyRepresentation(_parentJoint)
+        
+        # Create orientation object and store nodes in list
+        nodes = self.CreateStretchyObject("/ControlObjects/Blueprint/orientation_control.ma", "orientation_control_container", "orientation_control", _parentJoint, _childJoint)
+        orientationContainer = nodes[0]
+        orientationControl = nodes[1]
+        constrainedGrp = nodes[2]
+        
+        pm.parent(constrainedGrp, self.orientationGrp, relative = True)
+        
+        parentJointWithoutNamespace = utils.StripAllNamespaces(_parentJoint)[1]
+        attrName = "%s_orientation" %parentJointWithoutNamespace
+        
+        pm.container(orientationContainer, edit = True, publishAndBind = ["%s.rotateX" %orientationControl, attrName])
+        pm.container(self.containerName, edit = True, publishAndBind = ["%s.%s" %(orientationContainer, attrName), attrName])
+        
+        return orientationControl
