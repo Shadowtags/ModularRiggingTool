@@ -2,6 +2,8 @@ import pymel.core as pm
 import System.utils as utils
 import os
 
+reload(utils)
+
 CLASS_NAME = "ModuleA"
 
 TITLE = "module A"
@@ -68,6 +70,13 @@ class ModuleA():
         for joint in joints:
             translationControls.append(self.CreateTransationControlAtJoint(joint))
         
+        rootJoint_pointConstraint = pm.pointConstraint(translationControls[0], joints[0], maintainOffset = False, name = "%s_pointConstraint" %joints[0])
+        pm.container(self.containerName, edit = True, addNode = rootJoint_pointConstraint)
+        
+        # Setup strechy joint segment
+        for index in range(len(joints) - 1):
+            self.SetupStrechyJointSegment(joints[index], joints[index + 1])
+        
         
         pm.lockNode(self.containerName, lock = True, lockUnpublished = True)
     
@@ -100,5 +109,38 @@ class ModuleA():
         return control
     
     
+    
     def GetTranslationControl(self, _jointName):
         return "%s_translation_control" %_jointName
+    
+    
+    
+    
+    def SetupStrechyJointSegment(self, _parentJoint, _childJoint):
+        
+        parentTranslationControl = self.GetTranslationControl(_parentJoint)
+        childTranslationControl = self.GetTranslationControl(_childJoint)
+        
+        poleVectorLocator = pm.spaceLocator(name = "%s_poleVectorLocator" %parentTranslationControl)
+        
+        poleVectorLocatorGrp = pm.group(poleVectorLocator, name = "%s_parentConstraintGrp" %poleVectorLocator)
+        
+        pm.parent(poleVectorLocatorGrp, self.moduleGrp, absolute = True)
+        parentConstraint = pm.parentConstraint(parentTranslationControl, poleVectorLocatorGrp, maintainOffset = False)
+        
+        pm.setAttr("%s.visibility" %poleVectorLocator)
+        pm.setAttr("%s.ty" %poleVectorLocator, -0.5)
+        
+        
+        ikNodes = utils.BasicStrechyIK(_parentJoint, _childJoint, _container = self.containerName, _lockMinimumLength = False, _poleVectorObject = poleVectorLocator, _scaleCorrectionAttribute = None)
+        ikHandle = ikNodes["ikHandle"]
+        rootLocator = ikNodes["rootLocator"]
+        endLocator = ikNodes["endLocator"]
+        
+        childPointConstraint = pm.pointConstraint(childTranslationControl, endLocator, maintainOffset = False, name = "%s_pointConstraint" %endLocator)
+        
+        pm.container(self.containerName, edit = True, addNode = [poleVectorLocatorGrp, parentConstraint, childPointConstraint], includeHierarchyBelow = True)
+        
+        for node in [ikHandle, rootLocator, endLocator]:
+            pm.parent(node, self.jointsGrp, absolute = True)
+            pm.setAttr("%s.visibility" %node, 0)
