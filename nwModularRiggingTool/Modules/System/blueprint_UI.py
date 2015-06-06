@@ -88,10 +88,11 @@ class Blueprint_UI:
         
         basename = "instance_"
         
+        # Set namespace to root and list all namespaces in scene
         pm.namespace(setNamespace = ':')
         namespaces = pm.namespaceInfo(listOnlyNamespaces = True)
         
-        
+        # Find our module namespace
         for i in range(len(namespaces)):
             if namespaces[i].find("__") != -1:
                 namespaces[i] = namespaces[i].rpartition("__")[2]
@@ -101,11 +102,15 @@ class Blueprint_UI:
         
         userSpecName = basename + str(newSuffix)
         
-        
+        # Import our module
         mod = __import__("Blueprint.%s" %_module, (), (), [_module])
         reload(mod)
         
         moduleClass = getattr(mod, mod.CLASS_NAME)
         moduleInstance = moduleClass(userSpecName)
-        
         moduleInstance.Install()
+        
+        # After installation of module, select module transform with move tool
+        moduleTranform = "%s__%s:module_transform" %(mod.CLASS_NAME, userSpecName)
+        pm.select(moduleTranform, replace = True)
+        pm.setToolTo("moveSuperContext")
