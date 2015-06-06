@@ -259,4 +259,4 @@ def AddNodeToContainer(_containerName, _nodesIn, _includeHierarchyBelow = False,
     
     # Store everything in a single list
     nodes.extend(conversionNodes)
-    pm.container(_containerName, edit = True, addNode = nodes, includeHierarchyBelow = False, includeShapes = _includeShapes, force = _force)
+    pm.container(_containerName, edit = True, addNode = nodes, includeHierarchyBelow = _includeHierarchyBelow, includeShapes = _includeShapes, force = _force)

@@ -31,7 +31,8 @@ class ModuleA():
         pm.namespace(add = self.moduleNamespace)
         
         self.jointsGrp = pm.group(empty = True, name = "%s:joints_grp" %self.moduleNamespace)
-        self.moduleGrp = pm.group(self.jointsGrp, name = "%s:module_grp" %self.moduleNamespace)
+        self.hierarchyRepresentationGrp = pm.group(empty = True, name = "%s:hierarchyRepresentation_grp" %self.moduleNamespace)
+        self.moduleGrp = pm.group([self.jointsGrp, self.hierarchyRepresentationGrp], name = "%s:module_grp" %self.moduleNamespace)
         
         pm.container(name = self.containerName, addNode = self.moduleGrp, includeHierarchyBelow = True)
         
@@ -50,8 +51,11 @@ class ModuleA():
                 parentJoint = "%s:%s" %(self.moduleNamespace, self.jointInfo[index - 1][0])
                 pm.select(parentJoint, replace = True)
             
+            
+            # Create joint and hide
             jointName_full = pm.joint(name = "%s:%s" %(self.moduleNamespace, jointName), position = jointPos)
             joints.append(jointName_full)
+            pm.setAttr("%s.visibility" %jointName_full, 0)
             
             utils.AddNodeToContainer(self.containerName, jointName_full)
             
@@ -146,3 +150,44 @@ class ModuleA():
         for node in [ikHandle, rootLocator, endLocator]:
             pm.parent(node, self.jointsGrp, absolute = True)
             pm.setAttr("%s.visibility" %node, 0)
+        
+        
+        # Setup joint segment hierarchy representation
+        self.CreateHierarchyRepresentation(_parentJoint, _childJoint)
+    
+    
+    
+    def CreateHierarchyRepresentation(self, _parentJoint, _childJoint):
+        
+        nodes = self.CreateStretchyObject("/ControlObjects/Blueprint/hierarchy_representation.ma", "hierarchy_representation_container", "hierarchy_representation", _parentJoint, _childJoint)
+        constrainedGrp = nodes [2]
+        
+        pm.parent(constrainedGrp, self.hierarchyRepresentationGrp, relative = True)
+    
+    
+    
+    def CreateStretchyObject(self, _objectRelativeFilePath, _objectContainerName, _objectName, _parentJoint, _childJoint):
+        
+        # Import object
+        objectFile = "%s%s" %(os.environ["RIGGING_TOOL_ROOT"], _objectRelativeFilePath)
+        pm.importFile(objectFile)
+        
+        # Rename imported scene container and container objects
+        objectContainer = pm.rename(_objectContainerName, "%s_%s" %(_parentJoint, _objectContainerName))
+        
+        for node in pm.container(objectContainer, query = True, nodeList = True):
+            pm.rename(node, "%s_%s" %(_parentJoint, node), ignoreShape = True)
+        
+        obj = "%s_%s" %(_parentJoint, _objectName)
+        constrainedGrp = pm.group(empty = True, name = "%s_parentConstraint_grp" %obj)
+        
+        pm.parent(obj, constrainedGrp, absolute = True)
+        
+        parentConstraint = pm.parentConstraint(_parentJoint, constrainedGrp, maintainOffset = False)
+        
+        pm.connectAttr("%s.translateX" %_childJoint, "%s.scaleX" %constrainedGrp)
+        
+        utils.AddNodeToContainer(objectContainer, [constrainedGrp, parentConstraint], True)
+        utils.AddNodeToContainer(self.containerName, objectContainer)
+        
+        return (objectContainer, obj, constrainedGrp)
