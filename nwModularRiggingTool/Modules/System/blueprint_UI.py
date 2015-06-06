@@ -75,12 +75,12 @@ class Blueprint_UI:
         buttonSize = 64
         row = pm.rowLayout(numberOfColumns = 2, columnWidth = ([1, buttonSize]), adjustableColumn = 2, columnAttach = ([1, 'both', 0], [2, 'both', 5]), parent = self.UIElements["moduleList_column"])
         
-        self.UIElements["module_button_%s" %_module] = pm.symbolButton(width = buttonSize, height = buttonSize, image = icon, command = partial(self.InstallModule, _module))
+        self.UIElements["module_button_%s" %_module] = pm.symbolButton(width = buttonSize, height = buttonSize, image = icon, command = partial(self.InstallModule, _module), parent = row)
         
-        textColumn = pm.columnLayout(columnAlign = "center")
-        pm.text(align = "center", width = self.scrollWidth - buttonSize - 16, label = title)
+        textColumn = pm.columnLayout(columnAlign = "center", rowSpacing = 5, parent = row)
+        pm.text(align = "center", width = self.scrollWidth - buttonSize - 16, label = title, parent = textColumn)
         
-        pm.scrollField(text = description, editable = False, width = self.scrollWidth - buttonSize - 16, height = buttonSize + 16, wordWrap = True, parent = self.UIElements["moduleList_column"])
+        pm.scrollField(text = description, editable = False, width = self.scrollWidth - buttonSize - 16, height = buttonSize - 16, wordWrap = True, parent = textColumn)
     
     
     
