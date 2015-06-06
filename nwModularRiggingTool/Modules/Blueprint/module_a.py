@@ -24,6 +24,7 @@ class ModuleA():
         self.jointInfo = [ ["root_joint", [0.0, 0.0, 0.0]], ["end_joint", [4.0, 0.0, 0.0]] ]
     
     
+    
     def Install(self):
         
         pm.namespace(setNamespace = ':')
@@ -32,7 +33,7 @@ class ModuleA():
         self.jointsGrp = pm.group(empty = True, name = "%s:joints_grp" %self.moduleNamespace)
         self.moduleGrp = pm.group(self.jointsGrp, name = "%s:module_grp" %self.moduleNamespace)
         
-        pm.container(name = self.containerName, addNode = [self.moduleGrp], includeHierarchyBelow = True)
+        pm.container(name = self.containerName, addNode = self.moduleGrp, includeHierarchyBelow = True)
         
         pm.select(clear = True)
         
@@ -52,7 +53,7 @@ class ModuleA():
             jointName_full = pm.joint(name = "%s:%s" %(self.moduleNamespace, jointName), position = jointPos)
             joints.append(jointName_full)
             
-            pm.container(self.containerName, edit = True, addNode = jointName_full)
+            utils.AddNodeToContainer(self.containerName, jointName_full)
             
             pm.container(self.containerName, edit = True, publishAndBind = ["%s.rotate" %jointName_full, "%s_R" %jointName])
             pm.container(self.containerName, edit = True, publishAndBind = ["%s.rotateOrder" %jointName_full, "%s_RotateOrder" %jointName])
@@ -71,7 +72,8 @@ class ModuleA():
             translationControls.append(self.CreateTransationControlAtJoint(joint))
         
         rootJoint_pointConstraint = pm.pointConstraint(translationControls[0], joints[0], maintainOffset = False, name = "%s_pointConstraint" %joints[0])
-        pm.container(self.containerName, edit = True, addNode = rootJoint_pointConstraint)
+        utils.AddNodeToContainer(self.containerName, rootJoint_pointConstraint)
+        
         
         # Setup strechy joint segment
         for index in range(len(joints) - 1):
@@ -88,7 +90,7 @@ class ModuleA():
         pm.importFile(posControlFile)
         
         container = pm.rename("translation_control_container", "%s_translation_control_container" %_joint)
-        pm.container(self.containerName, edit = True, addNode = container)
+        utils.AddNodeToContainer(self.containerName, container)
         
         
         for node in pm.container(container, query = True, nodeList = True):
@@ -139,7 +141,7 @@ class ModuleA():
         
         childPointConstraint = pm.pointConstraint(childTranslationControl, endLocator, maintainOffset = False, name = "%s_pointConstraint" %endLocator)
         
-        pm.container(self.containerName, edit = True, addNode = [poleVectorLocatorGrp, parentConstraint, childPointConstraint], includeHierarchyBelow = True)
+        utils.AddNodeToContainer(self.containerName, [poleVectorLocatorGrp, parentConstraint, childPointConstraint], _includeHierarchyBelow = True)
         
         for node in [ikHandle, rootLocator, endLocator]:
             pm.parent(node, self.jointsGrp, absolute = True)

@@ -117,7 +117,7 @@ def BasicStrechyIK(_rootJoint, _endJoint, _container = None, _lockMinimumLength 
     pm.setAttr("%s.visibility" %endLocator, 0)
     
     if _container != None:
-        pm.container(_container, edit = True, addNode = containedNodes, includeHierarchyBelow = True)
+        AddNodeToContainer(_container, containedNodes, _includeHierarchyBelow = True)
     
     returnDict = {}
     returnDict["ikHandle"] = ikHandle
@@ -131,8 +131,10 @@ def BasicStrechyIK(_rootJoint, _endJoint, _container = None, _lockMinimumLength 
     return returnDict
 
 
+
 def ForceSceneUpdate():
     
+    # Select objects in scene with move tool to force an update
     pm.setTool("moveSuperContext")
     nodes = pm.ls()
     
@@ -142,4 +144,33 @@ def ForceSceneUpdate():
     
     pm.select(clear = True)
     pm.setTool("selectSuperContext")
+
+
+
+def AddNodeToContainer(_containerName, _nodesIn, _includeHierarchyBelow = False, _includeShapes = False, _force = False):
     
+    import types
+    
+    nodes = []
+    
+    # create a new list of current list object
+    if type(_nodesIn) is types.ListType:
+        nodes = list(_nodesIn)
+    
+    # store current object as a list
+    else:
+        nodes = [_nodesIn]
+    
+    # Put maya unit conversion nodes in a list
+    conversionNodes = []
+    
+    for node in nodes:
+        node_conversionNodes = pm.listConnections(node, source = True, destination = True)
+        node_conversionNodes = pm.ls(node_conversionNodes, typ = 'unitConversion')
+        
+        conversionNodes.extend(node_conversionNodes)
+
+    
+    # Store everything in a single list
+    nodes.extend(conversionNodes)
+    pm.container(_containerName, edit = True, addNode = nodes, includeHierarchyBelow = False, includeShapes = _includeShapes, force = _force)
