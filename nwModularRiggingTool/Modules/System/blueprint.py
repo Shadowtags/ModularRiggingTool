@@ -456,3 +456,15 @@ class Blueprint():
             pm.setAttr("%s.visibility" %renameNode)
             
             i += 1
+        
+        pm.select(blueprintGrp, replace = True)
+        pm.addAttr(attributeType = 'bool', defaultValue = 0, longName = "controlModuleInstalled", keyable = False)
+        
+        settingsLocator = pm.spaceLocator(name = "%s:SETTINGS" %self.moduleNamespace)
+        pm.setAttr("%s.visibility" %settingsLocator, 0)
+        
+        pm.select(settingsLocator, replace = True)
+        pm.addAttr(attributeType = 'enum', longName = "activeModule", enumName = "None:", keyable = False)
+        pm.addAttr(attributeType = 'float', longName = "creationPoseWeight", defaultValue = 1, keyable = False)
+        
+        
