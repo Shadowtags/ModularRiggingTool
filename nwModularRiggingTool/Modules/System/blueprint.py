@@ -467,4 +467,34 @@ class Blueprint():
         pm.addAttr(attributeType = 'enum', longName = "activeModule", enumName = "None:", keyable = False)
         pm.addAttr(attributeType = 'float', longName = "creationPoseWeight", defaultValue = 1, keyable = False)
         
+        i = 0
+        utilityNodes = []
+        for joint in newJoints:
+            
+            # Create utility nodes for root joint
+            if i < (numJoints-1) or numJoints == 1:
+                addNode = pm.shadingNode("plusMinusAverage", name = "%s_addRotations" %joint, asUtility = True)
+                pm.connectAttr("%s.output3D" %addNode, "%s.rotate" %joint, force = True)
+                utilityNodes.append(addNode)
+                
+                dummyRotationsMultiply = pm.shadingNode("multiplyDivide", name = "%s_dummyRotationsMultiply" %joint, asUtility = True)
+                pm.connectAttr("%s.output" %dummyRotationsMultiply, "%s.input3D[0]" %addNode, force = True)
+                utilityNodes.append(dummyRotationsMultiply)
+            
+            
+            # Create utility nodes for every joint except the root
+            if i > 0:
+                originalTx = pm.getAttr("%s.tx" %joint)
+                addTxNode = pm.shadingNode("plusMinusAverage", name = "%s_addTx" %joint, asUtility = True)
+                pm.connectAttr("%s.output1D" %addTxNode, "%s.translateX" %joint, force = True)
+                utilityNodes.append(addTxNode)
+                
+                originalTxMultiply = pm.shadingNode("multiplyDivide", name = "%s_original_Tx" %joint, asUtility = True)
+                pm.setAttr("%s.input1X" %originalTxMultiply, originalTx, lock = True)
+                pm.connectAttr("%s.creationPoseWeight" %settingsLocator, "%s.input2X" %originalTxMultiply, force = True)
+                pm.connectAttr("%s.outputX" %originalTxMultiply, "%s.input1D[0]" %addTxNode, force = True)
+                utilityNodes.append(originalTxMultiply)
+            
+            i += 1
+        
         
