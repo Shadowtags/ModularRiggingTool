@@ -209,3 +209,7 @@ class Blueprint_UI:
             moduleInfo = moduleInst.Lock_phase1()
             
             moduleInstances.append((moduleInst, moduleInfo))
+        
+        
+        for module in moduleInstances:
+            module[0].Lock_phase2(module[1])
