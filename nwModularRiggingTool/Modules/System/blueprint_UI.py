@@ -39,7 +39,7 @@ class Blueprint_UI:
         
         pm.separator(style = 'in', parent = self.UIElements["lockPublishColumn"])
         
-        self.UIElements["lockBtn"] = pm.button(label = 'Lock', parent = self.UIElements["lockPublishColumn"])
+        self.UIElements["lockBtn"] = pm.button(label = 'Lock', command = self.Lock, parent = self.UIElements["lockPublishColumn"])
         
         pm.separator(style = 'in', parent = self.UIElements["lockPublishColumn"])
         
@@ -158,3 +158,43 @@ class Blueprint_UI:
         moduleTranform = "%s__%s:module_transform" %(mod.CLASS_NAME, userSpecName)
         pm.select(moduleTranform, replace = True)
         pm.setToolTo("moveSuperContext")
+    
+    
+    def Lock(self, *args):
+        
+        # Give user warning that locking is permanent
+        result = pm.confirmDialog(messageAlign = 'center', title = 'Lock Blueprint', button = ['Accept', 'Cancel'], defaultButton = 'Accept', cancelButton = 'Cancel', dismissString = 'Cancel', message = "The action of locking a character will convert the current blueprint modules to joints. \nThis action cannot be undone. \nModifications to the blueprint system cannot be made after this point. \n\nDo you wish to continue?")
+        
+        if result != 'Accept':
+            return
+        
+        moduleInfo = []  # Store (module, userSpecifiedName) pairs
+        
+        # List all namespaces in scene from root
+        pm.namespace(setNamespace = ':')
+        namespaces = pm.namespaceInfo(listOnlyNamespaces = True)
+        
+        moduleNameInfo = utils.FindAllModuleNames("/Modules/Blueprint")
+        validModules = moduleNameInfo[0]
+        validModuleNames = moduleNameInfo[1]
+        
+        # Search scene for valid namespaces
+        for n in namespaces:
+            splitString = n.partition('__')
+            
+            if splitString[1] != '':
+                
+                module = splitString[0]
+                userSpecifiedName = splitString[2]
+                
+                # Add valid modules
+                if module in validModuleNames:
+                    index = validModuleNames.index(module)
+                    moduleInfo.append([validModules[index], userSpecifiedName])
+        
+        
+        if len(moduleInfo) == 0:
+            pm.confirmDialog(messageAlign = 'center', title = 'Lock Blueprints', message = "There appear to be no blueprint \ninstances in the current scene. \n\nAborting lock.", button = ["Accept"], defaultButton = "Accept")
+            return
+        
+        print moduleInfo

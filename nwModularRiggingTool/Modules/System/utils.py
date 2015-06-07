@@ -6,7 +6,6 @@ def FindAllModules(_relativeDirectory):
     # Return a list of all module names (excluding the ".py" extension)
     returnModules = []
     
-    
     allPyFiles = FindAllFiles(_relativeDirectory, ".py")
     
     for f in allPyFiles:
@@ -15,7 +14,23 @@ def FindAllModules(_relativeDirectory):
     
     
     return returnModules
+
+
+
+def FindAllModuleNames(_relativeDirectory):
     
+    validModules = FindAllModules(_relativeDirectory)
+    validModuleNames = []
+    
+    packageFolder = _relativeDirectory.partition('/Modules/')[2]
+    
+    for m in validModules:
+        mod = __import__("%s.%s" %(packageFolder, m), {}, {}, [m])
+        reload(mod)
+        
+        validModuleNames.append(mod.CLASS_NAME)
+    
+    return (validModules, validModuleNames)
     
 
 def FindAllFiles(_relativeDirectory, _fileExtension):
