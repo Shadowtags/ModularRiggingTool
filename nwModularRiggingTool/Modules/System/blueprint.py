@@ -471,7 +471,7 @@ class Blueprint():
         utilityNodes = []
         for joint in newJoints:
             
-            # Create utility nodes for root joint
+            # Create utility rotate nodes for root joint
             if i < (numJoints-1) or numJoints == 1:
                 addNode = pm.shadingNode("plusMinusAverage", name = "%s_addRotations" %joint, asUtility = True)
                 pm.connectAttr("%s.output3D" %addNode, "%s.rotate" %joint, force = True)
@@ -482,7 +482,7 @@ class Blueprint():
                 utilityNodes.append(dummyRotationsMultiply)
             
             
-            # Create utility nodes for every joint except the root
+            # Create utility translate nodes for every joint except the root
             if i > 0:
                 originalTx = pm.getAttr("%s.tx" %joint)
                 addTxNode = pm.shadingNode("plusMinusAverage", name = "%s_addTx" %joint, asUtility = True)
@@ -494,6 +494,38 @@ class Blueprint():
                 pm.connectAttr("%s.creationPoseWeight" %settingsLocator, "%s.input2X" %originalTxMultiply, force = True)
                 pm.connectAttr("%s.outputX" %originalTxMultiply, "%s.input1D[0]" %addTxNode, force = True)
                 utilityNodes.append(originalTxMultiply)
+            
+            # Create utility translate nodes root joint
+            else:
+                if rootTransform:
+                    originalTranslates = pm.getAttr("%s.translate" %joint)
+                    addTranslateNode = pm.shadingNode("plusMinusAverage", name = "%s_addTranslate" %joint, asUtility = True)
+                    pm.connectAttr("%s.output3D" %addTranslateNode, "%s.translate" %joint, force = True)
+                    utilityNodes.append(addTranslateNode)
+                    
+                    originalTranslateMultiply = pm.shadingNode("multiplyDivide", name = "%s_original_Translate" %joint, asUtility = True)
+                    pm.setAttr("%s.input1" %originalTranslateMultiply, originalTranslates[0], originalTranslates[1], originalTranslates[2], type = 'double3')
+                    
+                    for attr in ['X', 'Y', 'Z']:
+                        pm.connectAttr("%s.creationPoseWeight" %settingsLocator, "%s.input2%s" %(originalTranslateMultiply, attr), force = True)
+                    
+                    pm.connectAttr("%s.output" %originalTranslateMultiply, "%s.input3D[0]" %addTranslateNode, force = True)
+                    utilityNodes.append(originalTranslateMultiply)
+                    
+                    # Scale
+                    originalScales = pm.getAttr("%s.scale" %joint)
+                    addScaleNode = pm.shadingNode("plusMinusAverage", name = "%s_addScale" %joint, asUtility = True)
+                    pm.connectAttr("%s.output3D" %addScaleNode, "%s.scale" %joint, force = True)
+                    utilityNodes.append(addScaleNode)
+                
+                    originalScaleMultiply = pm.shadingNode("multiplyDivide", name = "%s_original_Scale" %joint, asUtility = True)
+                    pm.setAttr("%s.input1" %originalScaleMultiply, originalScales[0], originalScales[1], originalScales[2], type = 'double3')
+                
+                    for attr in ['X', 'Y', 'Z']:
+                        pm.connectAttr("%s.creationPoseWeight" %settingsLocator, "%s.input2%s" %(originalScaleMultiply, attr), force = True)
+                
+                    pm.connectAttr("%s.output" %originalScaleMultiply, "%s.input3D[0]" %addScaleNode, force = True)
+                    utilityNodes.append(originalScaleMultiply)
             
             i += 1
         
