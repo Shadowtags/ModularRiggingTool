@@ -530,3 +530,28 @@ class Blueprint():
             i += 1
         
         
+        blueprintNodes = utilityNodes
+        blueprintNodes.append(blueprintGrp)
+        blueprintNodes.append(creationPoseGrp)
+        
+        blueprintContainer = pm.container(name = "%s:blueprint_container" %self.moduleNamespace)
+        utils.AddNodeToContainer(blueprintContainer, blueprintNodes, True)
+        
+        moduleGrp = pm.group(empty = True, name = "%s:module_grp" %self.moduleNamespace)
+        pm.parent(settingsLocator, moduleGrp, absolute = True)
+        
+        # TEMP
+        for group in [blueprintGrp, creationPoseGrp]:
+            pm.parent(group, moduleGrp, absolute = True)
+        # END TEMP
+        
+        
+        moduleContainer = pm.container(name = "%s:module_container" %self.moduleNamespace)
+        utils.AddNodeToContainer(moduleContainer, [moduleGrp, settingsLocator, blueprintContainer], _includeShapes = True)
+        
+        pm.container(moduleContainer, edit = True, publishAndBind = ["%s.activeModule" %settingsLocator, "activeModule"])
+        pm.container(moduleContainer, edit = True, publishAndBind = ["%s.creationPoseWeight" %settingsLocator, "creationPoseWeight"])
+        
+        # TEMP
+        pm.lockNode(moduleContainer, lock = True, lockUnpublished = True)
+        # END TEMP
