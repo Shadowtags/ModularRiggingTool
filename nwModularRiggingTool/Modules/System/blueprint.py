@@ -8,7 +8,7 @@ reload(utils)
 class Blueprint():
     
     def __init__(self, _moduleName, _userSpecifiedName, _jointInfo):
-        print "Base class constructor"
+        
         self.moduleName = _moduleName
         self.userSpecName = _userSpecifiedName
         
@@ -22,6 +22,26 @@ class Blueprint():
     # METHODS INTENDED FOR OVERRIDING BY DERIVED CLASSES
     def Install_custom(self, _joints):
         print "Install custom method is not implemented by the derived class"
+    
+    
+    def Lock_phase1(self):
+        
+        # Gather and return all require information from this module's control objects
+        
+        # jointPositions = List of joint position, from root down the hierarchy
+        #jointOrientations = list of orientations, or list of axis information (orientJoint and secondaryAxisOrient for joint command)
+        #               # These are passed in the following tuple: (orientation, None) or (None, axisInfo)
+        
+        # jointRotationOrder = list of joint rotation orders (integer values gathered with getAttr)
+        # jointPreferredAngles = list of joint preferred angles, optional (can pass None)
+        # hookObject = self.FindHookObjectForLock()
+        # rootTransform = bool, either true or false. True = rotate, translate and scale on root joint. False = rotate only
+        
+        # moduleInfo = (jointPositions, jointOrientations, jointRotationOrders, jointPreferredAngles, hookObject, rootTransform)
+        # return moduleInfo
+        return None
+    
+    
     
     
     # BASE CLASS METHODS

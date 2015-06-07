@@ -197,4 +197,13 @@ class Blueprint_UI:
             pm.confirmDialog(messageAlign = 'center', title = 'Lock Blueprints', message = "There appear to be no blueprint \ninstances in the current scene. \n\nAborting lock.", button = ["Accept"], defaultButton = "Accept")
             return
         
-        print moduleInfo
+        
+        moduleInstances = []
+        for module in moduleInfo:
+            mod = __import__("Blueprint.%s" %module[0], {}, {}, [module[0]])
+            reload(mod)
+            
+            moduleClass = getattr(mod, mod.CLASS_NAME)
+            moduleInst = moduleClass(module[1])
+            
+            moduleInst.Lock_phase1()

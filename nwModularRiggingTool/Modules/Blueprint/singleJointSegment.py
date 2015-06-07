@@ -13,7 +13,6 @@ ICON = "%s/Icons/_singleJointSeg.xpm" %os.environ["RIGGING_TOOL_ROOT"]
 class SingleJointSegment(blueprint.Blueprint):
 
     def __init__(self, _userSpecifiedName):
-        print "Derived class constructor"
         
         jointInfo = [ ["root_joint", [0.0, 0.0, 0.0]], ["end_joint", [4.0, 0.0, 0.0]] ]
         
@@ -23,3 +22,7 @@ class SingleJointSegment(blueprint.Blueprint):
     
     #def Install_custom(self, _joints):
         #self.CreateOrientationControl(_joints[0], _joints[1])
+    
+    
+    def Lock_phase1(self):
+        print "LOCK PHASE 1"
