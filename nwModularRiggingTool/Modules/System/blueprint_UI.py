@@ -206,4 +206,6 @@ class Blueprint_UI:
             moduleClass = getattr(mod, mod.CLASS_NAME)
             moduleInst = moduleClass(module[1])
             
-            moduleInst.Lock_phase1()
+            moduleInfo = moduleInst.Lock_phase1()
+            
+            moduleInstances.append((moduleInst, moduleInfo))

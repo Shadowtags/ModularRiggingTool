@@ -161,6 +161,9 @@ class Blueprint():
     def GetTranslationControl(self, _jointName):
         return "%s_translation_control" %_jointName
     
+    def GetOrientationControl(self, _jointName):
+        return "%s_orientation_control" %_jointName
+    
     
     
     
@@ -293,3 +296,46 @@ class Blueprint():
         pm.container(self.containerName, edit = True, publishAndBind = ["%s.%s" %(orientationContainer, attrName), attrName])
         
         return orientationControl
+    
+    
+    
+    def GetJoints(self):
+        
+        jointBaseName = "%s:" %self.moduleNamespace
+        joints = []
+        
+        for jointInf in self.jointInfo:
+            joints.append("%s%s" %(jointBaseName, jointInf[0]))
+        
+        
+        return joints
+    
+    
+    
+    def OrientationControlJoint_getOrientation(self, _joint, _cleanParent):
+        
+        # Create clean copy of joint, as to be able to get the orientation values without destroying any connections
+        newCleanParent = pm.duplicate(_joint, parentOnly = True)[0]
+        
+        # Make sure the duplicate is parented correctly
+        if not _cleanParent in pm.listRelatives(newCleanParent, parent = True):
+            pm.parent(newCleanParent, _cleanParent, absolute = True)
+        
+        # Freeze rotations
+        pm.makeIdentity(newCleanParent, apply = True, rotate = True, scale = False, translate = False)
+        
+        # Match orientation of orientation control
+        orientationControl = self.GetOrientationControl(_joint)
+        pm.setAttr("%s.rotateX" %newCleanParent, pm.getAttr("%s.rotateX" %orientationControl))
+        
+        pm.makeIdentity(newCleanParent, apply = True, rotate = True, scale = False, translate = False)
+        
+        # Get new orientation values
+        orientX = pm.getAttr("%s.jointOrientX" %newCleanParent)
+        orientY = pm.getAttr("%s.jointOrientY" %newCleanParent)
+        orientZ = pm.getAttr("%s.jointOrientZ" %newCleanParent)
+        
+        # Store as a tuple for return
+        orientationValues = (orientX, orientY, orientZ)
+        
+        return (orientationValues, newCleanParent)
