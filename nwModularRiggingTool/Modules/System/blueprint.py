@@ -344,6 +344,7 @@ class Blueprint():
     
     def Lock_phase2(self, _moduleInfo):
         
+        # Aquire information about the modules
         jointPosition = _moduleInfo[0]
         numJoints = len(jointPosition)
         
@@ -378,4 +379,43 @@ class Blueprint():
         pm.lockNode(self.containerName, lock = False, lockUnpublished = False)
         pm.delete(self.containerName)
         
+        # Set namespace to root
         pm.namespace(setNamespace = ':')
+        
+        # Default radius of joint is 1.
+        jointRadius = 1
+        if numJoints == 1:
+            jointRadius = 1.5
+        
+        
+        newJoints = []
+        for i in range(numJoints):
+            
+            # Create new joint
+            newJoint = ''
+            pm.select(clear = True)
+            
+            if orientWithAxis:
+                newJoint = pm.joint(name = "%s:blueprint_%s" %(self.moduleNamespace, self.jointInfo[i][0]), position = jointPosition[i], rotationOrder = 'xyz', radius = jointRadius)
+                
+                # Orient parent joint in joint chain
+                if i != 0:
+                    offsetIndex = i-1
+                    pm.parent(newJoint, newJoints[offsetIndex], absolute = True)
+                    
+                    if offsetIndex < numOrientations:
+                        pm.joint(newJoints[offsetIndex], edit = True, orientJoint = jointOrientations[offsetIndex][0], secondaryAxisOrient = jointOrientations[offsetIndex][1])
+                        pm.makeIdentity(newJoint, rotate = True, apply = True)
+            
+            else:
+                if i != 0:
+                    pm.select(newJoints[i-1], replace = True)
+                
+                # Orient parent joint in joint chain
+                jointOrientation = [0.0, 0.0, 0.0]
+                if i < numOrientations:
+                    jointOrientation = [jointOrientations[i][0], jointOrientations[i][1], jointOrientations[i][2]]
+                
+                newJoint = pm.joint(name = "%s:blueprint_%s" %(self.moduleNamespace, self.jointInfo[i][0]), position = jointPosition[i], orientation = jointOrientation, rotationOrder = 'xyz', radius = jointRadius)
+            
+            newJoints.append(newJoint)
