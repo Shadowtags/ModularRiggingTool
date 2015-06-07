@@ -409,7 +409,7 @@ class Blueprint():
             
             else:
                 if i != 0:
-                    pm.select(newJoints[i-1], replace = True)
+                    pm.select(newJoints[i-1])
                 
                 # Orient parent joint in joint chain
                 jointOrientation = [0.0, 0.0, 0.0]
@@ -419,3 +419,40 @@ class Blueprint():
                 newJoint = pm.joint(name = "%s:blueprint_%s" %(self.moduleNamespace, self.jointInfo[i][0]), position = jointPosition[i], orientation = jointOrientation, rotationOrder = 'xyz', radius = jointRadius)
             
             newJoints.append(newJoint)
+            
+            if i < numRotationOrders:
+                pm.setAttr("%s.rotateOrder" %newJoint, int(jointRotationOrders[i]))
+            
+            if i < numPreferredAngles:
+                pm.setAttr("%s.preferredAngleX" %newJoint, jointPreferredAngles[i][0])
+                pm.setAttr("%s.preferredAngleY" %newJoint, jointPreferredAngles[i][1])
+                pm.setAttr("%s.preferredAngleZ" %newJoint, jointPreferredAngles[i][2])
+            
+            pm.setAttr("%s.segmentScaleCompensate" %newJoint, 0)
+        
+        
+        # Group new joint chain
+        blueprintGrp = pm.group(empty = True, name = "%s:blueprint_points_grp" %self.moduleNamespace)
+        pm.parent(newJoints[0], blueprintGrp, absolute = True)
+        
+        
+        creationPoseGrpNodes = pm.duplicate(blueprintGrp, name = "%s:creationPose_joint_grp" %self.moduleNamespace, renameChildren = True)
+        creationPoseGrp = creationPoseGrpNodes[0]
+        
+        
+        # Store duplicated nodes in list
+        pm.select(creationPoseGrp, hierarchy = True)
+        creationPoseGrpNodes = pm.ls(selection = True)
+        pm.select(clear = True)
+        
+        
+        # Remove group from list
+        creationPoseGrpNodes.pop(0)
+        
+        # Rename joints
+        i = 0
+        for node in creationPoseGrpNodes:
+            renameNode = pm.rename(node, "%s:creationPose_%s" %(self.moduleNamespace, self.jointInfo[i][0]))
+            pm.setAttr("%s.visibility" %renameNode)
+            
+            i += 1
