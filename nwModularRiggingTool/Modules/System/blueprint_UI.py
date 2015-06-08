@@ -9,6 +9,8 @@ class Blueprint_UI:
     
     def __init__(self):
         
+        self.moduleInstance = None
+        
         # Store UI elements in a dictionary
         self.UIElements = {}
         
@@ -49,7 +51,19 @@ class Blueprint_UI:
         
         # Display window
         pm.showWindow(self.UIElements["window"])
+        
+        
+        self.CreateScriptJob()
     
+    
+    
+    def CreateScriptJob(self):
+        self.jobNum = pm.scriptJob(event = ["SelectionChanged", self.ModifySelected], runOnce = True, parent = self.UIElements["window"])
+    
+    
+    
+    def DeleteScriptJob(self):
+        pm.scriptJob(kill = self.jobNum)
     
     
     def InitializeModuleTab(self, _tabWidth, _tabHeight):
@@ -213,3 +227,66 @@ class Blueprint_UI:
         
         for module in moduleInstances:
             module[0].Lock_phase2(module[1])
+    
+    
+    
+    def ModifySelected(self, *args):
+        selectedNodes = pm.ls(selection = True)
+        
+        if len(selectedNodes) <= 1:
+            self.moduleInstance = None
+            selectedModuleNamespace = None
+            currentModule = None
+            
+            if len(selectedNodes) == 1:
+                lastSelected = selectedNodes[0]
+                
+                namespaceAndNode = utils.StripLeadingNamespace(lastSelected)
+                
+                if namespaceAndNode != None:
+                    namespace = namespaceAndNode[0]
+                    
+                    moduleNameInfo = utils.FindAllModuleNames("/Modules/Blueprint")
+                    validModules = moduleNameInfo[0]
+                    validModuleNames = moduleNameInfo[1]
+                    
+                    index = 0
+                    for moduleName in validModuleNames:
+                        moduleNameIncSuffix = "%s__" %moduleName
+                        
+                        if namespace.find(moduleNameIncSuffix) == 0:
+                            currentModuleFile = validModules[index]
+                            selectedModuleNamespace = namespace
+                            break
+                        
+                        index += 1
+        
+            controlEnable = False
+            userSpecifiedName = ''
+            
+            if selectedModuleNamespace != None:
+                controlEnable = True
+                userSpecifiedName = selectedModuleNamespace.partition('__')[2]
+                
+                mod = __import__("Blueprint.%s" %currentModuleFile, {}, {}, [currentModuleFile])
+                reload(mod)
+                
+                
+                moduleClass = getattr(mod, mod.CLASS_NAME)
+                self.moduleInstance = moduleClass(_userSpecifiedName = userSpecifiedName)
+            
+            pm.button(self.UIElements["mirrorModuleBtn"], edit = True, enable = controlEnable)
+            
+            pm.button(self.UIElements["rehookBtn"], edit = True, enable = controlEnable)
+            pm.button(self.UIElements["snapRootBtn"], edit = True, enable = controlEnable)
+            pm.button(self.UIElements["constrainBtn"], edit = True, enable = controlEnable)
+            
+            pm.button(self.UIElements["deleteModuleBtn"], edit = True, enable = controlEnable)
+            
+            pm.textField(self.UIElements["moduleName"], edit = True, enable = controlEnable, text = userSpecifiedName)
+            
+            
+        
+        
+        
+        self.CreateScriptJob()
