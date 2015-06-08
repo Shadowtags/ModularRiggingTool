@@ -114,7 +114,7 @@ class Blueprint_UI:
         
         # Third row of buttons
         pm.text(label = '', parent = self.UIElements["moduleButtons_rowColumns"])
-        self.UIElements["deleteModuleBtn"] = pm.button(enable = False, label = "Delete Module", parent = self.UIElements["moduleButtons_rowColumns"])
+        self.UIElements["deleteModuleBtn"] = pm.button(enable = False, label = "Delete Module", command = self.DeleteModule, parent = self.UIElements["moduleButtons_rowColumns"])
         self.UIElements["symmetryMoveCheckBox"] = pm.checkBox(enable = True, label = "Symmetry Move", parent = self.UIElements["moduleButtons_rowColumns"])
         
         pm.separator(style = 'in', parent = self.UIElements["moduleColumn"])
@@ -314,3 +314,9 @@ class Blueprint_UI:
         
         if self.moduleInstance != None:
             self.moduleInstance.UI(self, self.UIElements["moduleSpecific_column"])
+    
+    
+    def DeleteModule(self, *args):
+        self.moduleInstance.Delete()
+        
+        pm.select(clear = True)

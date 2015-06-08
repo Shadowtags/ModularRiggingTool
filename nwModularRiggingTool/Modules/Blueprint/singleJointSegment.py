@@ -74,5 +74,4 @@ class SingleJointSegment(blueprint.Blueprint):
     
     def UI_custom(self):
         joints = self.GetJoints()
-        print joints
         self.CreateRotationOrderControl(joints[0])

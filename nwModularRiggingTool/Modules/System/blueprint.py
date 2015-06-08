@@ -575,3 +575,11 @@ class Blueprint():
         
         jointName = utils.StripAllNamespaces(_joint)[1]
         attrControlGroup = pm.attrControlGrp(attribute = "%s.rotateOrder" %_joint, label = jointName)
+    
+    
+    def Delete(self):
+        pm.lockNode(self.containerName, lock = False, lockUnpublished = False)
+        pm.delete(self.containerName)
+        
+        pm.namespace(setNamespace = ':')
+        pm.namespace(removeNamespace = self.moduleNamespace)
