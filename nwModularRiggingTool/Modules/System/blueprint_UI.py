@@ -68,13 +68,15 @@ class Blueprint_UI:
     
     def InitializeModuleTab(self, _tabWidth, _tabHeight):
         
-        scrollHeight = _tabHeight - 150
+        moduleSpecific_scrollHeight = 120
+        scrollHeight = _tabHeight - moduleSpecific_scrollHeight - 163
+        
         
         self.UIElements["moduleColumn"] = pm.columnLayout(adjustableColumn = True, rowSpacing = 3, parent = self.UIElements["tabs"])
         
         self.UIElements["moduleFrameLayout"] = pm.frameLayout(height = scrollHeight, collapsable = False, borderVisible = False, labelVisible = False, parent = self.UIElements["moduleColumn"])
         
-        self.UIElements["moduleList_scroll"] = pm.scrollLayout(hst = 0, parent = self.UIElements["moduleFrameLayout"])
+        self.UIElements["moduleList_scroll"] = pm.scrollLayout(horizontalScrollBarThickness = 0, parent = self.UIElements["moduleFrameLayout"])
         
         self.UIElements["moduleList_column"] = pm.columnLayout(columnWidth = self.scrollWidth, adjustableColumn = True, rowSpacing = 2, parent = self.UIElements["moduleList_scroll"])
         
@@ -116,7 +118,15 @@ class Blueprint_UI:
         self.UIElements["symmetryMoveCheckBox"] = pm.checkBox(enable = True, label = "Symmetry Move", parent = self.UIElements["moduleButtons_rowColumns"])
         
         pm.separator(style = 'in', parent = self.UIElements["moduleColumn"])
-    
+        
+        
+        
+        self.UIElements["moduleSpecificRowColumnLayout"] = pm.rowColumnLayout(numberOfRows = 1, rowAttach = [1, 'both', 0], rowHeight = [1, moduleSpecific_scrollHeight], parent = self.UIElements["moduleColumn"])
+        self.UIElements["modueSpecific_scroll"] = pm.scrollLayout(width = _tabWidth - 8, horizontalScrollBarThickness = 0, parent = self.UIElements["moduleSpecificRowColumnLayout"])
+        self.UIElements["moduleSpecific_column"] = pm.columnLayout(columnWidth = self.scrollWidth, columnAttach = ['both', 5], rowSpacing = 2, parent = self.UIElements["modueSpecific_scroll"])
+        
+        
+        pm.separator(style = 'in', parent = self.UIElements["moduleColumn"])
     
     
     
@@ -286,7 +296,21 @@ class Blueprint_UI:
             pm.textField(self.UIElements["moduleName"], edit = True, enable = controlEnable, text = userSpecifiedName)
             
             
-        
+            self.CreateModuleSpecificControls()
         
         
         self.CreateScriptJob()
+    
+    
+    
+    def CreateModuleSpecificControls(self):
+        
+        existingControls = pm.columnLayout(self.UIElements["moduleSpecific_column"], query = True, childArray = True)
+        
+        if existingControls != None:
+            pm.deleteUI(existingControls)
+        
+        pm.setParent(self.UIElements["moduleSpecific_column"])
+        
+        if self.moduleInstance != None:
+            self.moduleInstance.UI(self, self.UIElements["moduleSpecific_column"])

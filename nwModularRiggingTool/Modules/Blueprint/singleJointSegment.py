@@ -70,3 +70,9 @@ class SingleJointSegment(blueprint.Blueprint):
         # Store locked joint information in a module information tuple and return tuple
         moduleInfo = (jointPositions, jointOrientations, jointRotationOrders, jointPreferredAngles, hookObject, rootTransform)
         return moduleInfo
+    
+    
+    def UI_custom(self):
+        joints = self.GetJoints()
+        print joints
+        self.CreateRotationOrderControl(joints[0])

@@ -42,6 +42,10 @@ class Blueprint():
         return None
     
     
+    def UI_custom(self):
+        temp = 1
+    
+    
     
     
     # BASE CLASS METHODS
@@ -555,3 +559,19 @@ class Blueprint():
         # TEMP
         pm.lockNode(moduleContainer, lock = True, lockUnpublished = True)
         # END TEMP
+    
+    
+    
+    def UI(self, _blueprint_UI_instance, _parentColumnLayout):
+        
+        self.blueprint_UI_instance = _blueprint_UI_instance
+        self.parentColumnLayout = _parentColumnLayout
+        
+        self.UI_custom()
+    
+    
+    
+    def CreateRotationOrderControl(self, _joint):
+        
+        jointName = utils.StripAllNamespaces(_joint)[1]
+        attrControlGroup = pm.attrControlGrp(attribute = "%s.rotateOrder" %_joint, label = jointName)
