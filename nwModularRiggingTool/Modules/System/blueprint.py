@@ -24,8 +24,7 @@ class Blueprint():
             
             if partitionInfo[1] != '' and partitionInfo[2] == '':
                 self.hookObj = _hookObjIn
-        
-        print self.hookObj
+    
     
     
     # METHODS INTENDED FOR OVERRIDING BY DERIVED CLASSES
@@ -695,3 +694,8 @@ class Blueprint():
         hookRepresentationContainer = objectNodes[0]
         pm.container(self.containerName, edit = True, removeNode = hookRepresentationContainer)
         utils.AddNodeToContainer(hookContainer, hookRepresentationContainer)
+    
+    
+    
+    def Rehook(self, _newHookObject):
+        print _newHookObject

@@ -103,7 +103,7 @@ class Blueprint_UI:
         self.UIElements["moduleButtons_rowColumns"] = pm.rowColumnLayout(numberOfColumns = 3, rowOffset = [(1, 'both', 2), (2, 'both', 2), (3, 'both', 2)], columnAttach = [(1, 'both', 3), (2, 'both', 3), (3, 'both', 3)], columnWidth = [(1, columnWidth), (2, columnWidth), (3, columnWidth)], parent = self.UIElements["moduleColumn"])
         
         # First row of buttons
-        self.UIElements["rehookBtn"] = pm.button(enable = False, label = "Re-hook", parent = self.UIElements["moduleButtons_rowColumns"])
+        self.UIElements["rehookBtn"] = pm.button(enable = False, label = "Re-hook", command = self.RehookModule_setup, parent = self.UIElements["moduleButtons_rowColumns"])
         self.UIElements["snapRootBtn"] = pm.button(enable = False, label = "Snap Root > Hook", parent = self.UIElements["moduleButtons_rowColumns"])
         self.UIElements["constrainBtn"] = pm.button(enable = False, label = "Constrain Root > Hook", parent = self.UIElements["moduleButtons_rowColumns"])
         
@@ -351,3 +351,38 @@ class Blueprint_UI:
             hookObj = selectedObjects[numberOfObjects - 1]
         
         return hookObj
+    
+    
+    
+    def RehookModule_setup(self, *args):
+        
+        selectedNodes = pm.ls(selection = True, transforms = True)
+        
+        if len(selectedNodes) == 2:
+            newHook = self.FindHookObjectFromSelection()
+            self.moduleInstance.Rehook(newHook)
+        
+        else:
+            self.DeleteScriptJob()
+            
+            currentSelection = pm.ls(selection = True)
+            
+            pm.headsUpMessage("Please select the joint you wish to re-hook to. Clear selection to un-hook.")
+            
+            pm.scriptJob(event = ['SelectionChanged', partial(self.RehookModule_callback, currentSelection)], runOnce = True)
+    
+    
+    
+    
+    def RehookModule_callback(self, _currentSelection):
+        newHook = self.FindHookObjectFromSelection()
+        
+        self.moduleInstance.Rehook(newHook)
+        
+        if len(currentSelection) > 0:
+            pm.select(_currentSelection, replace = True)
+        else:
+            pm.select(clear = True)
+        
+        
+        self.CreateScriptJob()
