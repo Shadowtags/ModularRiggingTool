@@ -95,7 +95,7 @@ class Blueprint_UI:
         
         self.UIElements["moduleName_row"] = pm.rowLayout(numberOfColumns = 2, columnAttach = (1, 'right', 0), columnWidth = [(1, 80)], adjustableColumn = 2, parent = self.UIElements["moduleColumn"])
         pm.text(label = "Module Name :", parent = self.UIElements["moduleName_row"])
-        self.UIElements["moduleName"] = pm.textField(enable = False, alwaysInvokeEnterCommandOnReturn = True, parent = self.UIElements["moduleName_row"])
+        self.UIElements["moduleName"] = pm.textField(enable = False, alwaysInvokeEnterCommandOnReturn = True, parent = self.UIElements["moduleName_row"], enterCommand = self.RenameModule)
         
         
         columnWidth = (_tabWidth - 20) / 3
@@ -320,3 +320,17 @@ class Blueprint_UI:
         self.moduleInstance.Delete()
         
         pm.select(clear = True)
+    
+    
+    def RenameModule(self, *args):
+        newName = pm.textField(self.UIElements["moduleName"], query = True, text = True)
+        
+        self.moduleInstance.RenameModuleInstance(newName)
+        
+        previousSelected = pm.ls(selection = True)
+        
+        if len(previousSelected) > 0:
+            pm.select(previousSelected, replace = True)
+        
+        else:
+            pm.select(clear = True)

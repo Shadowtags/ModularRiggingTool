@@ -10,9 +10,9 @@ class Blueprint():
     def __init__(self, _moduleName, _userSpecifiedName, _jointInfo):
         
         self.moduleName = _moduleName
-        self.userSpecName = _userSpecifiedName
+        self.userSpecifiedName = _userSpecifiedName
         
-        self.moduleNamespace = "%s__%s" %(self.moduleName, self.userSpecName)
+        self.moduleNamespace = "%s__%s" %(self.moduleName, self.userSpecifiedName)
         
         self.containerName = "%s:module_container" %self.moduleNamespace
         
@@ -583,3 +583,38 @@ class Blueprint():
         
         pm.namespace(setNamespace = ':')
         pm.namespace(removeNamespace = self.moduleNamespace)
+    
+    
+    def RenameModuleInstance(self, _newName):
+        
+        if _newName == self.userSpecifiedName:
+            return True
+        
+        if utils.DoesBlueprintUserSpecifiedNameExist(_newName):
+            pm.confirmDialog(title = 'Name Conflict', message = 'Name "%s" already exists.\nAborting rename.' %_newName, button = ['Accept'], defaultButton = 'Accept')
+            return False
+        
+        else:
+            newNamespace = "%s__%s" %(self.moduleName, _newName)
+            
+            pm.lockNode(self.containerName, lock = False, lockUnpublished = False)
+            
+            # Add new namespace
+            pm.namespace(setNamespace = ':')
+            pm.namespace(add = newNamespace)
+            pm.namespace(setNamespace = ':')
+            
+            # Move old one
+            pm.namespace(moveNamespace = [self.moduleNamespace, newNamespace])
+            
+            # Remove old namespace
+            pm.namespace(removeNamespace = self.moduleNamespace)
+            
+            # Update variables
+            self.moduleNamespace = newNamespace
+            self.containerName = "%s:module_container" %self.moduleNamespace
+            
+            # Lock container
+            pm.lockNode(self.containerName, lock = True, lockUnpublished = True)
+            
+            return True

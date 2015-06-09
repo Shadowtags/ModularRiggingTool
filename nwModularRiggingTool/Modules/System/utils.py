@@ -1,5 +1,6 @@
 import pymel.core as pm
 
+
 def FindAllModules(_relativeDirectory):
     
     # Search the relative directory for all available modules
@@ -275,3 +276,19 @@ def AddNodeToContainer(_containerName, _nodesIn, _includeHierarchyBelow = False,
     # Store everything in a single list
     nodes.extend(conversionNodes)
     pm.container(_containerName, edit = True, addNode = nodes, includeHierarchyBelow = _includeHierarchyBelow, includeShapes = _includeShapes, force = _force)
+
+
+
+def DoesBlueprintUserSpecifiedNameExist(_name):
+    
+    pm.namespace(setNamespace = ':')
+    namespaces = pm.namespaceInfo(listOnlyNamespaces = True)
+    
+    names = []
+    for namespace in namespaces:
+        if namespace.find('__') != -1:
+            names.append(namespace.partition('__')[2])
+    
+    return _name in names
+
+
