@@ -7,7 +7,7 @@ reload(utils)
 
 class Blueprint():
     
-    def __init__(self, _moduleName, _userSpecifiedName, _jointInfo):
+    def __init__(self, _moduleName, _userSpecifiedName, _jointInfo, _hookObjIn):
         
         self.moduleName = _moduleName
         self.userSpecifiedName = _userSpecifiedName
@@ -17,6 +17,15 @@ class Blueprint():
         self.containerName = "%s:module_container" %self.moduleNamespace
         
         self.jointInfo = _jointInfo
+        
+        self.hookObj = None
+        if _hookObjIn != None:
+            partitionInfo = _hookObjIn.rpartition("_translation_control")
+            
+            if partitionInfo[1] != '' and partitionInfo[2] == '':
+                self.hookObj = _hookObjIn
+        
+        print self.hookObj
     
     
     # METHODS INTENDED FOR OVERRIDING BY DERIVED CLASSES
@@ -29,7 +38,7 @@ class Blueprint():
         # Gather and return all require information from this module's control objects
         
         # jointPositions = List of joint position, from root down the hierarchy
-        #jointOrientations = list of orientations, or list of axis information (orientJoint and secondaryAxisOrient for joint command)
+        # jointOrientations = list of orientations, or list of axis information (orientJoint and secondaryAxisOrient for joint command)
         #               # These are passed in the following tuple: (orientation, None) or (None, axisInfo)
         
         # jointRotationOrder = list of joint rotation orders (integer values gathered with getAttr)
@@ -111,6 +120,11 @@ class Blueprint():
         
         rootJoint_pointConstraint = pm.pointConstraint(translationControls[0], joints[0], maintainOffset = False, name = "%s_pointConstraint" %joints[0])
         utils.AddNodeToContainer(self.containerName, rootJoint_pointConstraint)
+        
+        
+        # Initialize hook object
+        self.InitializeHook(translationControls[0])
+        
         
         
         # Setup strechy joint segment
@@ -618,3 +632,66 @@ class Blueprint():
             pm.lockNode(self.containerName, lock = True, lockUnpublished = True)
             
             return True
+    
+    
+    
+    def InitializeHook(self, _rootTranslationControl):
+        
+        unhookedLocator = pm.spaceLocator(name = "%s:unkookedTarget" %self.moduleNamespace)
+        pm.pointConstraint(_rootTranslationControl, unhookedLocator, offset = [0, 0.001, 0])
+        pm.setAttr("%s.visibility" %unhookedLocator, 0)
+        
+        if self.hookObj == None:
+            self.hookObj = unhookedLocator
+        
+        
+        rootPos = pm.xform(_rootTranslationControl, query = True, worldSpace = True, translation = True)
+        targetPos = pm.xform(self.hookObj, query = True, worldSpace = True, translation = True)
+        
+        # Make sure nothing is selected when creating the hook joints
+        pm.select(clear = True)
+        
+        rootJointWithoutNamespace = "hook_root_joint"
+        rootJoint = pm.joint(name = "%s:%s" %(self.moduleNamespace, rootJointWithoutNamespace), position = rootPos)
+        pm.setAttr("%s.visibility" %rootJoint, 0)
+        
+        targetJointWithoutNamespace = "hook_target_joint"
+        targetJoint = pm.joint(name = "%s:%s" %(self.moduleNamespace, targetJointWithoutNamespace), position = targetPos)
+        pm.setAttr("%s.visibility" %targetJoint, 0)
+        
+        pm.joint(rootJoint, edit = True, orientJoint = 'xyz', secondaryAxisOrient = 'yup')
+        
+        hookGroup = pm.group([rootJoint, unhookedLocator], name = "%s:hook_grp" %self.moduleNamespace, parent = self.moduleGrp)
+        
+        hookContainer = pm.container(name = "%s:hook_container" %self.moduleNamespace)
+        utils.AddNodeToContainer(hookContainer, hookGroup, True)
+        utils.AddNodeToContainer(self.containerName, hookContainer)
+        
+        for joint in [rootJoint, targetJoint]:
+            jointName = utils.StripAllNamespaces(joint)[1]
+            pm.container(hookContainer, edit = True, publishAndBind = ["%s.rotate" %joint, "%s_R" %jointName])
+        
+        
+        ikNodes = utils.BasicStretchyIK(rootJoint, targetJoint, hookContainer, False)
+        ikHandle = ikNodes["ikHandle"]
+        rootLocator = ikNodes["rootLocator"]
+        endLocator = ikNodes["endLocator"]
+        poleVectorLocator = ikNodes["poleVectorObject"]
+        
+        rootPointConstraint = pm.pointConstraint(_rootTranslationControl, rootJoint, maintainOffset = False, name = "%s_pointConstraint" %rootJoint)
+        targetPointConstraint = pm.pointConstraint(self.hookObj, endLocator, maintainOffset = False, name = "%s:hook_pointConstraint" %self.moduleNamespace)
+        
+        utils.AddNodeToContainer(hookContainer, [rootPointConstraint, targetPointConstraint])
+        
+        for node in [ikHandle, rootLocator, endLocator, poleVectorLocator]:
+            pm.parent(node, hookGroup, absolute = True)
+            pm.setAttr("%s.visibility" %node, 0)
+        
+        
+        objectNodes = self.CreateStretchyObject("/ControlObjects/Blueprint/hook_representation.ma", "hook_representation_container", "hook_representation", rootJoint, targetJoint)
+        constrainedGrp = objectNodes[2]
+        pm.parent(constrainedGrp, hookGroup, absolute = True)
+        
+        hookRepresentationContainer = objectNodes[0]
+        pm.container(self.containerName, edit = True, removeNode = hookRepresentationContainer)
+        utils.AddNodeToContainer(hookContainer, hookRepresentationContainer)

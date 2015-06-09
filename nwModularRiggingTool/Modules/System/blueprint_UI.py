@@ -170,12 +170,16 @@ class Blueprint_UI:
         
         userSpecName = basename + str(newSuffix)
         
+        
+        hookObj = self.FindHookObjectFromSelection()
+        
+        
         # Import our module
         mod = __import__("Blueprint.%s" %_module, (), (), [_module])
         reload(mod)
         
         moduleClass = getattr(mod, mod.CLASS_NAME)
-        moduleInstance = moduleClass(userSpecName)
+        moduleInstance = moduleClass(userSpecName, hookObj)
         moduleInstance.Install()
         
         # After installation of module, select module transform with move tool
@@ -228,7 +232,7 @@ class Blueprint_UI:
             reload(mod)
             
             moduleClass = getattr(mod, mod.CLASS_NAME)
-            moduleInst = moduleClass(module[1])
+            moduleInst = moduleClass(module[1], None)
             
             moduleInfo = moduleInst.Lock_phase1()
             
@@ -283,7 +287,7 @@ class Blueprint_UI:
                 
                 
                 moduleClass = getattr(mod, mod.CLASS_NAME)
-                self.moduleInstance = moduleClass(_userSpecifiedName = userSpecifiedName)
+                self.moduleInstance = moduleClass(userSpecifiedName, None)
             
             pm.button(self.UIElements["mirrorModuleBtn"], edit = True, enable = controlEnable)
             
@@ -334,3 +338,16 @@ class Blueprint_UI:
         
         else:
             pm.select(clear = True)
+    
+    
+    
+    def FindHookObjectFromSelection(self, *args):
+        
+        selectedObjects = pm.ls(selection = True, transforms = True)
+        numberOfObjects = len(selectedObjects)
+        hookObj = None
+        
+        if numberOfObjects != 0:
+            hookObj = selectedObjects[numberOfObjects - 1]
+        
+        return hookObj

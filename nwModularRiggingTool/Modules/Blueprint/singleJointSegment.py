@@ -12,14 +12,14 @@ ICON = "%s/Icons/_singleJointSeg.xpm" %os.environ["RIGGING_TOOL_ROOT"]
 
 class SingleJointSegment(blueprint.Blueprint):
 
-    def __init__(self, _userSpecifiedName):
+    def __init__(self, _userSpecifiedName, _hookObj):
         
         jointInfo = [ ["root_joint", [0.0, 0.0, 0.0]], ["end_joint", [4.0, 0.0, 0.0]] ]
         
-        blueprint.Blueprint.__init__(self, CLASS_NAME, _userSpecifiedName, jointInfo)
+        blueprint.Blueprint.__init__(self, CLASS_NAME, _userSpecifiedName, jointInfo, _hookObj)
     
     
-    
+    # Installs module specific controls
     def Install_custom(self, _joints):
         self.CreateOrientationControl(_joints[0], _joints[1])
     
@@ -47,11 +47,11 @@ class SingleJointSegment(blueprint.Blueprint):
         
         joints = self.GetJoints()
         
+        
+        # Set locked joint information
         for joint in joints:
             jointPositions.append(pm.xform(joint, query = True, worldSpace = True, translation = True))
         
-        
-        # Set locked joint information
         OrientationInfo = self.OrientationControlJoint_getOrientation(joints[0], cleanParent)
         
         jointOrientationValues.append(OrientationInfo[0])
@@ -69,9 +69,12 @@ class SingleJointSegment(blueprint.Blueprint):
         
         # Store locked joint information in a module information tuple and return tuple
         moduleInfo = (jointPositions, jointOrientations, jointRotationOrders, jointPreferredAngles, hookObject, rootTransform)
+        
+        
         return moduleInfo
     
     
+    # Creates module specific UI controls
     def UI_custom(self):
         joints = self.GetJoints()
         self.CreateRotationOrderControl(joints[0])
