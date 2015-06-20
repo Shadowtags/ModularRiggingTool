@@ -18,12 +18,12 @@ class Blueprint():
         
         self.jointInfo = _jointInfo
         
-        self.hookObj = None
+        self.hookObject = None
         if _hookObjIn != None:
             partitionInfo = _hookObjIn.rpartition("_translation_control")
             
             if partitionInfo[1] != '' and partitionInfo[2] == '':
-                self.hookObj = _hookObjIn
+                self.hookObject = _hookObjIn
     
     
     
@@ -636,16 +636,16 @@ class Blueprint():
     
     def InitializeHook(self, _rootTranslationControl):
         
-        unhookedLocator = pm.spaceLocator(name = "%s:unkookedTarget" %self.moduleNamespace)
+        unhookedLocator = pm.spaceLocator(name = "%s:unhookedTarget" %self.moduleNamespace)
         pm.pointConstraint(_rootTranslationControl, unhookedLocator, offset = [0, 0.001, 0])
         pm.setAttr("%s.visibility" %unhookedLocator, 0)
         
-        if self.hookObj == None:
-            self.hookObj = unhookedLocator
+        if self.hookObject == None:
+            self.hookObject = unhookedLocator
         
         
         rootPos = pm.xform(_rootTranslationControl, query = True, worldSpace = True, translation = True)
-        targetPos = pm.xform(self.hookObj, query = True, worldSpace = True, translation = True)
+        targetPos = pm.xform(self.hookObject, query = True, worldSpace = True, translation = True)
         
         # Make sure nothing is selected when creating the hook joints
         pm.select(clear = True)
@@ -678,7 +678,7 @@ class Blueprint():
         poleVectorLocator = ikNodes["poleVectorObject"]
         
         rootPointConstraint = pm.pointConstraint(_rootTranslationControl, rootJoint, maintainOffset = False, name = "%s_pointConstraint" %rootJoint)
-        targetPointConstraint = pm.pointConstraint(self.hookObj, endLocator, maintainOffset = False, name = "%s:hook_pointConstraint" %self.moduleNamespace)
+        targetPointConstraint = pm.pointConstraint(self.hookObject, endLocator, maintainOffset = False, name = "%s:hook_pointConstraint" %self.moduleNamespace)
         
         utils.AddNodeToContainer(hookContainer, [rootPointConstraint, targetPointConstraint])
         
@@ -698,4 +698,45 @@ class Blueprint():
     
     
     def Rehook(self, _newHookObject):
-        print _newHookObject
+        oldHookObject = self.FindHookObject()
+        
+        self.hookObject = "%s:unhookedTarget" %self.moduleNamespace
+        
+        # Make sure module has a module to hook to
+        if _newHookObject != None:
+            
+            # Make sure the name of the object can be split correctly
+            if _newHookObject.find("_translation_control") != -1:
+                splitString = _newHookObject.split("_translation_control")
+                
+                # Make sure it's the correct control
+                if splitString[1] == '':
+                    # Make sure hooking is not happening with itself
+                    if utils.StripLeadingNamespace(_newHookObject)[0] != self.moduleNamespace:
+                        self.hookObject = _newHookObject
+        
+        
+        # Cancel hooking if hooking to same object
+        if self.hookObject == oldHookObject:
+            return
+        
+        
+        pm.lockNode(self.containerName, lock = False, lockUnpublished = False)
+        
+        # Rewire point constraint connections to new hook object
+        hookConstraint = "%s:hook_pointConstraint" %self.moduleNamespace
+        
+        pm.connectAttr("%s.parentMatrix[0]" %self.hookObject, "%s.target[0].targetParentMatrix" %hookConstraint, force = True)
+        pm.connectAttr("%s.translate" %self.hookObject, "%s.target[0].targetTranslate" %hookConstraint, force = True)
+        pm.connectAttr("%s.rotatePivot" %self.hookObject, "%s.target[0].targetRotatePivot" %hookConstraint, force = True)
+        pm.connectAttr("%s.rotatePivotTranslate" %self.hookObject, "%s.target[0].targetRotateTranslate" %hookConstraint, force = True)
+        
+        pm.lockNode(self.containerName, lock = True, lockUnpublished = True)
+    
+    
+    def FindHookObject(self):
+        hookConstraint = "%s:hook_pointConstraint" %self.moduleNamespace
+        sourceAttr = pm.connectionInfo("%s.target[0].targetParentMatrix" %hookConstraint, sourceFromDestination = True)
+        sourceNode = str(sourceAttr).rpartition(".")[0]
+        
+        return sourceNode

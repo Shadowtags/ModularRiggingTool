@@ -379,7 +379,7 @@ class Blueprint_UI:
         
         self.moduleInstance.Rehook(newHook)
         
-        if len(currentSelection) > 0:
+        if len(_currentSelection) > 0:
             pm.select(_currentSelection, replace = True)
         else:
             pm.select(clear = True)
