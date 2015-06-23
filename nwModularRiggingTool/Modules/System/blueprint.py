@@ -767,6 +767,10 @@ class Blueprint():
             return
         
         
+        # Make sure the module is not constrained to any other modules
+        self.UnconstrainRootFromHook()
+        
+        
         pm.lockNode(self.containerName, lock = False, lockUnpublished = False)
         
         # Rewire point constraint connections to new hook object
@@ -818,3 +822,63 @@ class Blueprint():
             utils.AddNodeToContainer(moduleContainer, [parentConstraint, scaleConstraint])
         
         pm.lockNode(moduleContainer, lock = True, lockUnpublished = True)
+    
+    
+    
+    def SnapRootToHook(self):
+        
+        rootControl = self.GetTranslationControl("%s:%s" %(self.moduleNamespace, self.jointInfo[0][0]))
+        hookObject = self.FindHookObject()
+        
+        if hookObject == "%s:unhookedTarget" %self.moduleNamespace:
+            return
+        
+        hookObjectPos = pm.xform(hookObject, query = True, worldSpace = True, translation = True)
+        pm.xform(rootControl, worldSpace = True, absolute = True, translation = hookObjectPos)
+    
+    
+    def ConstrainRootToHook(self):
+        rootControl = self.GetTranslationControl("%s:%s" %(self.moduleNamespace, self.jointInfo[0][0]))
+        hookObject = self.FindHookObject()
+    
+        if hookObject == "%s:unhookedTarget" %self.moduleNamespace:
+            return
+        
+        pm.lockNode(self.containerName, lock = False, lockUnpublished = False)
+        
+        pm.pointConstraint(hookObject, rootControl, maintainOffset = False, name = "%s_hookConstraint" %rootControl)
+        pm.setAttr("%s.translate" %rootControl, lock = True)
+        pm.setAttr("%s.visibility" %rootControl, lock = False)
+        pm.setAttr("%s.visibility" %rootControl, 0)
+        pm.setAttr("%s.visibility" %rootControl, lock = True)
+        
+        pm.select(clear = True)
+        
+        pm.lockNode(self.containerName, lock = True, lockUnpublished = True)
+    
+    
+    def UnconstrainRootFromHook(self):
+        
+        pm.lockNode(self.containerName, lock = False, lockUnpublished = False)
+        
+        rootControl = self.GetTranslationControl("%s:%s" %(self.moduleNamespace, self.jointInfo[0][0]))
+        rootControl_hookConstraint = "%s_hookConstraint" %rootControl
+        
+        if pm.objExists(rootControl_hookConstraint):
+            pm.delete(rootControl_hookConstraint)
+            
+            pm.setAttr("%s.translate" %rootControl, lock = False)
+            pm.setAttr("%s.visibility" %rootControl, lock = False)
+            pm.setAttr("%s.visibility" %rootControl, 1)
+            pm.setAttr("%s.visibility" %rootControl, lock = True)
+        
+        
+        pm.lockNode(self.containerName, lock = True, lockUnpublished = True)
+    
+    
+    def IsRootConstrained(self):
+        
+        rootControl = self.GetTranslationControl("%s:%s" %(self.moduleNamespace, self.jointInfo[0][0]))
+        rootControl_hookConstraint = "%s_hookConstraint" %rootControl
+        
+        return pm.objExists(rootControl_hookConstraint)

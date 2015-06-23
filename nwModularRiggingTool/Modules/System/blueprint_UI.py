@@ -104,8 +104,8 @@ class Blueprint_UI:
         
         # First row of buttons
         self.UIElements["rehookBtn"] = pm.button(enable = False, label = "Re-hook", command = self.RehookModule_setup, parent = self.UIElements["moduleButtons_rowColumns"])
-        self.UIElements["snapRootBtn"] = pm.button(enable = False, label = "Snap Root > Hook", parent = self.UIElements["moduleButtons_rowColumns"])
-        self.UIElements["constrainBtn"] = pm.button(enable = False, label = "Constrain Root > Hook", parent = self.UIElements["moduleButtons_rowColumns"])
+        self.UIElements["snapRootBtn"] = pm.button(enable = False, label = "Snap Root > Hook", command = self.SnapRootToHook, parent = self.UIElements["moduleButtons_rowColumns"])
+        self.UIElements["constrainBtn"] = pm.button(enable = False, label = "Constrain Root > Hook", command = self.ConstrainRootToHook, parent = self.UIElements["moduleButtons_rowColumns"])
         
         # Second row of buttons
         self.UIElements["groupSelectedBtn"] = pm.button(label = "Group Selected", parent = self.UIElements["moduleButtons_rowColumns"])
@@ -283,6 +283,8 @@ class Blueprint_UI:
         
             controlEnable = False
             userSpecifiedName = ''
+            constrainCommand = self.ConstrainRootToHook
+            constrainLabel = "Constrain Root > Hook"
             
             if selectedModuleNamespace != None:
                 controlEnable = True
@@ -294,14 +296,18 @@ class Blueprint_UI:
                 
                 moduleClass = getattr(mod, mod.CLASS_NAME)
                 self.moduleInstance = moduleClass(userSpecifiedName, None)
+                
+                if self.moduleInstance.IsRootConstrained():
+                    constrainCommand = self.UnconstrainRootFromHook
+                    constrainLabel = "Unconstrain Root"
             
             pm.button(self.UIElements["mirrorModuleBtn"], edit = True, enable = controlEnable)
             
             pm.button(self.UIElements["rehookBtn"], edit = True, enable = controlEnable)
             pm.button(self.UIElements["snapRootBtn"], edit = True, enable = controlEnable)
-            pm.button(self.UIElements["constrainBtn"], edit = True, enable = controlEnable)
+            pm.button(self.UIElements["constrainBtn"], edit = True, enable = controlEnable, label = constrainLabel, command = constrainCommand)
             
-            pm.button(self.UIElements["deleteModuleBtn"], edit = True, enable = controlEnable)
+            pm.button(self.UIElements["deleteModuleBtn"], edit = True, enable = controlEnable, command = self.DeleteModule)
             
             pm.textField(self.UIElements["moduleName"], edit = True, enable = controlEnable, text = userSpecifiedName)
             
@@ -392,3 +398,20 @@ class Blueprint_UI:
         
         
         self.CreateScriptJob()
+    
+    
+    
+    def SnapRootToHook(self, *args):
+        self.moduleInstance.SnapRootToHook()
+    
+    
+    def ConstrainRootToHook(self, *args):
+        self.moduleInstance.ConstrainRootToHook()
+        
+        pm.button(self.UIElements["constrainBtn"], edit = True, label = "Unconstrain Root", command = self.UnconstrainRootFromHook)
+    
+    
+    def UnconstrainRootFromHook(self, *args):
+        self.moduleInstance.UnconstrainRootFromHook()
+        
+        pm.button(self.UIElements["constrainBtn"], edit = True, label = "Constrain Root > Hook", command = self.ConstrainRootToHook)
