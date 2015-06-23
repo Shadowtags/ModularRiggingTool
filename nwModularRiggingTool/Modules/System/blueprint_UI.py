@@ -226,6 +226,7 @@ class Blueprint_UI:
             return
         
         
+        # Lock phase 1
         moduleInstances = []
         for module in moduleInfo:
             mod = __import__("Blueprint.%s" %module[0], {}, {}, [module[0]])
@@ -235,13 +236,18 @@ class Blueprint_UI:
             moduleInst = moduleClass(module[1], None)
             
             moduleInfo = moduleInst.Lock_phase1()
-            
             moduleInstances.append((moduleInst, moduleInfo))
         
         
+        # Lock phase 2
         for module in moduleInstances:
             module[0].Lock_phase2(module[1])
-    
+        
+        
+        # Lock phase 3
+        for module in moduleInstances:
+            hookObject = module[1][4]
+            module[0].Lock_phase3(hookObject)
     
     
     def ModifySelected(self, *args):

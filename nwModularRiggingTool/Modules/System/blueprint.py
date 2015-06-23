@@ -387,9 +387,11 @@ class Blueprint():
         if jointPreferredAngles != None:
             numPreferredAngles = len(jointPreferredAngles)
         
-        # hookObject = _moduleInfo[4]
+        hookObject = _moduleInfo[4]
         
         rootTransform = _moduleInfo[5]
+        
+        
         
         
         # Delete our blueprint controls
@@ -477,6 +479,12 @@ class Blueprint():
         pm.select(blueprintGrp, replace = True)
         pm.addAttr(attributeType = 'bool', defaultValue = 0, longName = "controlModuleInstalled", keyable = False)
         
+        
+        hookGroup = pm.group(empty = True, name = "%s:HOOK_IN" %self.moduleNamespace)
+        for obj in [blueprintGrp, creationPoseGrp]:
+            pm.parent(obj, hookGroup, absolute = True)
+        
+        
         settingsLocator = pm.spaceLocator(name = "%s:SETTINGS" %self.moduleNamespace)
         pm.setAttr("%s.visibility" %settingsLocator, 0)
         
@@ -555,23 +563,22 @@ class Blueprint():
         utils.AddNodeToContainer(blueprintContainer, blueprintNodes, True)
         
         moduleGrp = pm.group(empty = True, name = "%s:module_grp" %self.moduleNamespace)
-        pm.parent(settingsLocator, moduleGrp, absolute = True)
+        for obj in [hookGroup, settingsLocator]:
+            pm.parent(obj, moduleGrp, absolute = True)
         
-        # TEMP
-        for group in [blueprintGrp, creationPoseGrp]:
-            pm.parent(group, moduleGrp, absolute = True)
-        # END TEMP
         
         
         moduleContainer = pm.container(name = "%s:module_container" %self.moduleNamespace)
-        utils.AddNodeToContainer(moduleContainer, [moduleGrp, settingsLocator, blueprintContainer], _includeShapes = True)
+        utils.AddNodeToContainer(moduleContainer, [moduleGrp, hookGroup, settingsLocator, blueprintContainer], _includeShapes = True)
         
         pm.container(moduleContainer, edit = True, publishAndBind = ["%s.activeModule" %settingsLocator, "activeModule"])
         pm.container(moduleContainer, edit = True, publishAndBind = ["%s.creationPoseWeight" %settingsLocator, "creationPoseWeight"])
         
-        # TEMP
-        pm.lockNode(moduleContainer, lock = True, lockUnpublished = True)
-        # END TEMP
+        
+        pm.select(moduleGrp, replace = True)
+        pm.addAttr(attributeType = "float", longName = "hierarchicalScale")
+        pm.connectAttr("%s.scaleY" %hookGroup, "%s.hierarchicalScale" %moduleGrp)
+        
     
     
     
@@ -591,7 +598,46 @@ class Blueprint():
     
     
     def Delete(self):
+        
+        # Unlock container before deleting module
         pm.lockNode(self.containerName, lock = False, lockUnpublished = False)
+        
+        
+        validModuleInfo = utils.FindAllModuleNames("/Modules/Blueprint")
+        validModules = validModuleInfo[0]
+        validModuleNames = validModuleInfo[1]
+        
+        # Store hooked modules in set
+        hookedModules = set()
+        for jntInfo in self.jointInfo:
+            
+            joint = jntInfo[0]
+            translationControl = self.GetTranslationControl("%s:%s" %(self.moduleNamespace, joint))
+            
+            connections = pm.listConnections(translationControl)
+            
+            # Check if module is hooked to another module and if so, store hooked modules in a list
+            for connection in connections:
+                moduleInstance = utils.StripLeadingNamespace(connection)
+                
+                if moduleInstance != None:
+                    splitString = moduleInstance[0].partition("__")
+                    
+                    if moduleInstance[0] != self.moduleNamespace and splitString[0] in validModuleNames:
+                        index = validModuleNames.index(splitString[0])
+                        
+                        hookedModules.add( (validModules[index], splitString[2]) )
+        
+        
+        # Unhook module before deleting
+        for module in hookedModules:
+            mod = __import__("Blueprint.%s" %module[0], {}, {}, [module[0]])
+            moduleClass = getattr(mod, mod.CLASS_NAME)
+            moduleInst = moduleClass(module[1], None)
+            moduleInst.Rehook(None)
+            
+        
+        
         pm.delete(self.containerName)
         
         pm.namespace(setNamespace = ':')
@@ -740,3 +786,35 @@ class Blueprint():
         sourceNode = str(sourceAttr).rpartition(".")[0]
         
         return sourceNode
+    
+    
+    
+    def FindHookObjectForLock(self):
+        hookObject = self.FindHookObject()
+        
+        if hookObject == "%s:unhookedTarget" %self.moduleNamespace:
+            hookObject = None
+        else:
+            self.Rehook(None)
+        
+        return hookObject
+    
+    
+    
+    def Lock_phase3(self, _hookObject):
+        
+        moduleContainer = "%s:module_container" %self.moduleNamespace
+        
+        if _hookObject != None:
+            hookObjectModuleNode = utils.StripLeadingNamespace(_hookObject)
+            hookObjectModule = hookObjectModuleNode[0]
+            hookObjectJoint = hookObjectModuleNode[1].split("_translation_control")[0]
+            
+            hookObj = "%s:blueprint_%s" %(hookObjectModule, hookObjectJoint)
+            
+            parentConstraint = pm.parentConstraint(hookObj, "%s:HOOK_IN" %self.moduleNamespace, maintainOffset = True, name = "%s:hook_parent_constraint" %self.moduleNamespace)
+            scaleConstraint = pm.scaleConstraint(hookObj, "%s:HOOK_IN" %self.moduleNamespace, maintainOffset = True, name = "%s:hook_scale_constraint" %self.moduleNamespace)
+            
+            utils.AddNodeToContainer(moduleContainer, [parentConstraint, scaleConstraint])
+        
+        pm.lockNode(moduleContainer, lock = True, lockUnpublished = True)
