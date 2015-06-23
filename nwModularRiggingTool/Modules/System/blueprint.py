@@ -871,6 +871,9 @@ class Blueprint():
             pm.setAttr("%s.visibility" %rootControl, lock = False)
             pm.setAttr("%s.visibility" %rootControl, 1)
             pm.setAttr("%s.visibility" %rootControl, lock = True)
+            
+            pm.select(rootControl, replace = True)
+            pm.setToolTo("moveSuperContext")
         
         
         pm.lockNode(self.containerName, lock = True, lockUnpublished = True)
