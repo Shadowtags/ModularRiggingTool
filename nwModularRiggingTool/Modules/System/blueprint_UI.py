@@ -108,7 +108,7 @@ class Blueprint_UI:
         self.UIElements["constrainBtn"] = pm.button(enable = False, label = "Constrain Root > Hook", command = self.ConstrainRootToHook, parent = self.UIElements["moduleButtons_rowColumns"])
         
         # Second row of buttons
-        self.UIElements["groupSelectedBtn"] = pm.button(label = "Group Selected", parent = self.UIElements["moduleButtons_rowColumns"])
+        self.UIElements["groupSelectedBtn"] = pm.button(label = "Group Selected", command = self.GroupSelected, parent = self.UIElements["moduleButtons_rowColumns"])
         self.UIElements["ungroupBtn"] = pm.button(enable = False, label = "Ungroup", parent = self.UIElements["moduleButtons_rowColumns"])
         self.UIElements["mirrorModuleBtn"] = pm.button(enable = False, label = "Mirror Module", parent = self.UIElements["moduleButtons_rowColumns"])
         
@@ -415,3 +415,10 @@ class Blueprint_UI:
         self.moduleInstance.UnconstrainRootFromHook()
         
         pm.button(self.UIElements["constrainBtn"], edit = True, label = "Constrain Root > Hook", command = self.ConstrainRootToHook)
+    
+    
+    def GroupSelected(self, *args):
+        import System.groupSelected as group
+        reload(group)
+        
+        group.GroupSelected().ShowUI()
