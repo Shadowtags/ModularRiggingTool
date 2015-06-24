@@ -171,7 +171,7 @@ class GroupSelected:
             containers.append("%s:module_container" %objNamespace)
         
         
-        # Unlock all group containers
+        # Unlock all grouped containers
         for c in containers:
             pm.lockNode(c, lock = False, lockUnpublished = False)
         
@@ -216,3 +216,92 @@ class GroupSelected:
         pm.container(groupContainer, edit = True, publishAndBind = ["%s.translate" %_group, "%s_t" %groupName])
         pm.container(groupContainer, edit = True, publishAndBind = ["%s.rotate" %_group, "%s_r" %groupName])
         pm.container(groupContainer, edit = True, publishAndBind = ["%s.globalScale" %_group, "%s_globalScale" %groupName])
+
+
+
+
+class UngroupSelected:
+    
+    def __init__(self):
+        selectedObjects = pm.ls(selection = True, transforms = True)
+        
+        filteredGroups = []
+        for obj in selectedObjects:
+            if obj.find("Group__") == 0:
+                filteredGroups.append(obj)
+        
+        if len(filteredGroups) == 0:
+            return
+        
+        # Recursively find and store grouped module namespaces in a list
+        groupContainer = "Group_container"
+        modules = []
+        for group in filteredGroups:
+            modules.extend(self.FindChildModules(group))
+        
+        
+        # Store all the grouped container nodes in a list
+        moduleContainers = [groupContainer]
+        for module in modules:
+            moduleContainer = "%s:module_container" %module
+            moduleContainers.append(moduleContainer)
+        
+        
+        # Unlock containers
+        for container in moduleContainers:
+            pm.lockNode(container, lock = False, lockUnpublished = False)
+        
+        
+        # Ungroup
+        for group in filteredGroups:
+            childCount = len(pm.listRelatives(group, children = True))
+            
+            if childCount > 1:
+                pm.ungroup(group, absolute = True)
+            
+            for attr in ["t", "r", "globalScale"]:
+                pm.container(groupContainer, edit = True, unbindAndUnpublish = "%s.%s" %(group, attr))
+            
+            parentGroup = pm.listRelatives(group, parent = True)
+            
+            pm.delete(group)
+            
+            # Recursively delete empty parent groups
+            if parentGroup != []:
+                parentGroup = parentGroup[0]
+                children = pm.listRelatives(parentGroup, children = True)
+                children = pm.ls(children, transforms = True)
+                
+                if len(children) == 0:
+                    pm.select(parentGroup, replace = True)
+                    UngroupSelected()
+        
+        
+        # delete group container
+        if pm.objExists(groupContainer):
+            pm.delete(groupContainer)
+        
+        # Lock module containers after ungrouping is finished
+        for container in moduleContainers:
+            if pm.objExists(container):
+                pm.lockNode(container, lock = True, lockUnpublished = True)
+    
+    
+    
+    
+    def FindChildModules(self, _group):
+        modules = []
+        children = pm.listRelatives(_group, children = True)
+        
+        # Recursively search group heirarchy for modules
+        if children != None:
+            for child in children:
+                moduleNamespaceInfo = utils.StripLeadingNamespace(child)
+                
+                if moduleNamespaceInfo != None:
+                    modules.append(moduleNamespaceInfo[0])
+                
+                elif child.find("Group__") != -1:
+                    modules.extend(self.FindChildModules(child))
+        
+        return modules

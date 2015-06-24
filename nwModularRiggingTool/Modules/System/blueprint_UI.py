@@ -109,7 +109,7 @@ class Blueprint_UI:
         
         # Second row of buttons
         self.UIElements["groupSelectedBtn"] = pm.button(label = "Group Selected", command = self.GroupSelected, parent = self.UIElements["moduleButtons_rowColumns"])
-        self.UIElements["ungroupBtn"] = pm.button(enable = False, label = "Ungroup", parent = self.UIElements["moduleButtons_rowColumns"])
+        self.UIElements["ungroupBtn"] = pm.button(enable = False, label = "Ungroup", command = self.UngroupSelected, parent = self.UIElements["moduleButtons_rowColumns"])
         self.UIElements["mirrorModuleBtn"] = pm.button(enable = False, label = "Mirror Module", parent = self.UIElements["moduleButtons_rowColumns"])
         
         # Third row of buttons
@@ -258,8 +258,13 @@ class Blueprint_UI:
             selectedModuleNamespace = None
             currentModule = None
             
+            pm.button(self.UIElements["ungroupBtn"], edit = True, enable = False)
+            
             if len(selectedNodes) == 1:
                 lastSelected = selectedNodes[0]
+                
+                if lastSelected.find("Group__") == 0:
+                    pm.button(self.UIElements["ungroupBtn"], edit = True, enable = True)
                 
                 namespaceAndNode = utils.StripLeadingNamespace(lastSelected)
                 
@@ -422,3 +427,10 @@ class Blueprint_UI:
         reload(group)
         
         group.GroupSelected().ShowUI()
+    
+    
+    def UngroupSelected(self, *args):
+        import System.groupSelected as group
+        reload(group)
+        
+        group.UngroupSelected()
