@@ -271,4 +271,84 @@ class MirrorModule:
     
     
     def MirrorModules(self):
-        print self.moduleInfo
+        mirrorModulesProgress_UI = pm.progressWindow(title = "Mirror Module(s)", status = "This may take a few minutes...", isInterruptable = False)
+        mirrorModulesProgress = 0
+        
+        mirrorModulesProgress_stage1_proportion = 15
+        mirrorModulesProgress_stage2_proportion = 70
+        mirrorModulesProgress_stage3_proportion = 10
+        
+        moduleNameInfo = utils.FindAllModuleNames("/Modules/Blueprint")
+        validModules = moduleNameInfo[0]
+        validModuleNames = moduleNameInfo[1]
+        
+        for module in self.moduleInfo:
+            moduleName = module[0].partition("__")[0]
+            
+            if moduleName in validModuleNames:
+                index = validModuleNames.index(moduleName)
+                module.append(validModules[index])
+        
+        
+        mirrorModulesProgress_progressIncrement = mirrorModulesProgress_stage1_proportion / len(self.moduleInfo)
+        for module in self.moduleInfo:
+            userSpecifiedName = module[0].partition("__")[2]
+            
+            mod = __import__("Blueprint.%s" %module[5], {}, {}, [module[5]])
+            reload(mod)
+            
+            moduleClass = getattr(mod, mod.CLASS_NAME)
+            moduleInst = moduleClass(userSpecifiedName, None)
+            
+            hookObject = moduleInst.FindHookObject()
+            
+            newHookObject = None
+            hookModule = utils.StripLeadingNamespace(hookObject)[0]
+            
+            hookFound = False
+            for m in self.moduleInfo:
+                if hookModule == m[0]:
+                    hookFound = True
+                    
+                    if m == module:
+                        continue
+                    
+                    hookObjectName = utils.StripLeadingNamespace(hookObject)[1]
+                    newHookObject = "%s:%s" %(m[1], hookObjectName)
+            
+            if not hookFound:
+                newHookObject = hookObject
+            
+            module.append(newHookObject)
+            
+            hookConstrained = moduleInst.IsRootConstrained()
+            module.append(hookConstrained)
+            
+            
+            # Increment progress bar
+            mirrorModulesProgress += mirrorModulesProgress_progressIncrement
+            pm.progressWindow(mirrorModulesProgress_UI, edit = True, progress = mirrorModulesProgress)
+        
+        
+        
+        mirrorModulesProgress_progressIncement = mirrorModulesProgress_stage2_proportion / len(self.moduleInfo)
+        for module in self.moduleInfo:
+            newUserSpecifiedName = module[1].partition("__")[2]
+            
+            mod = __import__("Blueprint.%s" %module[5], {}, {}, [module[5]])
+            reload(mod)
+        
+            moduleClass = getattr(mod, mod.CLASS_NAME)
+            moduleInst = moduleClass(newUserSpecifiedName, None)
+            
+            moduleInst.Mirror(module[0], module[2], module[3], module[4])
+            
+            # Increment progress bar
+            mirrorModulesProgress += mirrorModulesProgress_progressIncement
+            pm.progressWindow(mirrorModulesProgress_UI, edit = True, progress = mirrorModulesProgress)
+        
+        
+        
+        pm.progressWindow(mirrorModulesProgress_UI, edit = True, endProgress = True)
+        
+        utils.ForceSceneUpdate()

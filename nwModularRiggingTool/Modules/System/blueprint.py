@@ -27,12 +27,18 @@ class Blueprint():
         
         
         self.canBeMirrored = True
+        
+        self.mirrored = False
     
     
     
     # METHODS INTENDED FOR OVERRIDING BY DERIVED CLASSES
     def Install_custom(self, _joints):
         print "Install custom method is not implemented by the derived class"
+    
+    
+    def Mirror_Custom(self, _originalModule):
+        print "Mirror_Custom() method is not implemented by derived class"
     
     
     def Lock_phase1(self):
@@ -105,6 +111,48 @@ class Blueprint():
                 pm.joint(parentJoint, edit = True, orientJoint = 'xyz', secondaryAxisOrient = 'yup')
             
             index += 1
+        
+        
+        if self.mirrored:
+            mirrorXY = False
+            mirrorYZ = False
+            mirrorXZ = False
+            
+            if self.mirrorPlane == "XY":
+                mirrorXY = True
+            elif self.mirrorPlane == "YZ":
+                mirrorYZ = True
+            elif self.mirrorPlane == "XZ":
+                mirrorXZ = True
+            
+            
+            mirrorBehaviour = False
+            if self.rotationFunction == "behaviour":
+                mirrorBehaviour = True
+            
+            mirroredNodes = pm.mirrorJoint(joints[0], mirrorXY = mirrorXY, mirrorYZ = mirrorYZ, mirrorXZ = mirrorXZ, mirrorBehavior = mirrorBehaviour)
+            
+            pm.delete(joints)
+            
+            mirroredJoints = []
+            for node in mirroredNodes:
+                if pm.objectType(node, isType = 'joint'):
+                    mirroredJoints.append(node)
+                else:
+                    pm.delete(node)
+            
+            
+            index = 0
+            for joint in mirroredJoints:
+                jointName = self.jointInfo[index][0]
+                newJointName = pm.rename(joint, "%s:%s" %(self.moduleNamespace, jointName))
+                
+                self.jointInfo[index][1] = pm.xform(newJointName, query = True, worldSpace = True, translation = True)
+                
+                index += 1
+        
+        
+        
         
         # Parent joint chain into joint group
         pm.parent(joints[0], self.jointsGrp, absolute = True)
@@ -209,6 +257,13 @@ class Blueprint():
         rootLocator = ikNodes["rootLocator"]
         endLocator = ikNodes["endLocator"]
         
+        
+        if self.mirrored:
+            if self.mirrorPlane == "XZ":
+                pm.setAttr("%s.twist" %ikHandle, 90)
+        
+        
+        
         # PointConstraint end locator to child control
         childPointConstraint = pm.pointConstraint(childTranslationControl, endLocator, maintainOffset = False, name = "%s_pointConstraint" %endLocator)
         
@@ -273,6 +328,34 @@ class Blueprint():
         # Rename and position transform object
         self.moduleTransform = pm.rename("controlGroup_control", "%s:module_transform" %self.moduleNamespace)
         pm.xform(self.moduleTransform, worldSpace = True, absolute = True, translation = _rootPos)
+        
+        
+        # position mirrored nodes correctly
+        if self.mirrored:
+            duplicateTransform = pm.duplicate("%s:module_transform" %self.originalModule, parentOnly = True, name = "TEMP_TRANSFORM")
+            emptyGroup = pm.group(empty = True)
+            
+            pm.parent(duplicateTransform, emptyGroup, absolute = True)
+            
+            scaleAttr = ".scaleX"
+            if self.mirrorPlane == "XZ":
+                scaleAttr = ".scaleY"
+            elif self.mirrorPlane == "XY":
+                scaleAttr = ".scaleZ"
+            
+            
+            pm.setAttr("%s%s" %(emptyGroup, scaleAttr), -1)
+            
+            parentConstraint = pm.parentConstraint(duplicateTransform, self.moduleTransform, maintainOffset = False)
+            pm.delete(parentConstraint)
+            pm.delete(emptyGroup)
+            
+            tempLocator = pm.spaceLocator()
+            scaleConstraint = pm.scaleConstraint("%s:module_transform" %self.originalModule, tempLocator, maintainOffset = False)
+            scale = pm.getAttr("%s.scaleX" %tempLocator)
+            pm.delete([tempLocator, scaleConstraint])
+            
+            pm.xform(self.moduleTransform, objectSpace = True, scale = [scale, scale, scale])
         
         utils.AddNodeToContainer(self.containerName, self.moduleTransform, True)
         
@@ -892,3 +975,70 @@ class Blueprint():
     
     def CanModuleBeMirrored(self):
         return self.canBeMirrored
+    
+    
+    def Mirror(self, _originalModule, _mirrorPlane, _rotationFunction, _translationFunction):
+        
+        self.mirrored = True
+        self.originalModule = _originalModule
+        self.mirrorPlane = _mirrorPlane
+        self.rotationFunction = _rotationFunction
+        
+        self.Install()
+        
+        pm.lockNode(self.containerName, lock = False, lockUnpublished = False)
+        
+        for jointInfo in self.jointInfo:
+            jointName = jointInfo[0]
+            
+            originalJoint = "%s:%s" %(self.originalModule, jointName)
+            newJoint = "%s:%s" %(self.moduleNamespace, jointName)
+            
+            originalRotationOrder = pm.getAttr("%s.rotateOrder" %originalJoint)
+            pm.setAttr("%s.rotateOrder" %newJoint, originalRotationOrder)
+        
+        index = 0
+        for jointInfo in self.jointInfo:
+            mirrorPoleVectorLocator = False
+            
+            if index < len(self.jointInfo) - 1:
+                mirrorPoleVectorLocator = True
+            
+            jointName = jointInfo[0]
+            
+            originalJoint = "%s:%s" %(self.originalModule, jointName)
+            newJoint = "%s:%s" %(self.moduleNamespace, jointName)
+        
+            originalTranslationControl = self.GetTranslationControl(originalJoint)
+            newTranslationControl = self.GetTranslationControl(newJoint)
+            
+            originalTranslationControlPosition = pm.xform(originalTranslationControl, query = True, worldSpace = True, translation = True)
+            
+            if self.mirrorPlane == "YZ":
+                originalTranslationControlPosition[0] *= -1
+            elif self.mirrorPlane == "XZ":
+                originalTranslationControlPosition[1] *= -1
+            elif self.mirrorPlane == "XY":
+                originalTranslationControlPosition[2] *= -1
+            
+            pm.xform(newTranslationControl, worldSpace = True, absolute = True, translation = originalTranslationControlPosition)
+            
+            
+            if mirrorPoleVectorLocator:
+                originalPoleVectorLocator = "%s_poleVectorLocator" %originalTranslationControl
+                newPoleVectorLocator = "%s_poleVectorLocator" %newTranslationControl
+                originalPoleVectorLocatorPosition = pm.xform(originalPoleVectorLocator, query = True, worldSpace = True, translation = True)
+                
+                if self.mirrorPlane == "YZ":
+                    originalPoleVectorLocatorPosition[0] *= -1
+                elif self.mirrorPlane == "XZ":
+                    originalPoleVectorLocatorPosition[1] *= -1
+                elif self.mirrorPlane == "XY":
+                    originalPoleVectorLocatorPosition[2] *= -1
+                
+                pm.xform(newPoleVectorLocator, worldSpace = True, absolute = True, translation = originalPoleVectorLocatorPosition)
+            
+            index += 1
+        
+        
+        self.Mirror_Custom(_originalModule)

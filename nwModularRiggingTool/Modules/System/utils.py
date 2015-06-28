@@ -237,7 +237,7 @@ def BasicStretchyIK(_rootJoint, _endJoint, _container = None, _lockMinimumLength
 def ForceSceneUpdate():
     
     # Select objects in scene with move tool to force an update
-    pm.setTool("moveSuperContext")
+    pm.setToolTo("moveSuperContext")
     nodes = pm.ls()
     
     for node in nodes:
@@ -245,7 +245,7 @@ def ForceSceneUpdate():
     
     
     pm.select(clear = True)
-    pm.setTool("selectSuperContext")
+    pm.setToolTo("selectSuperContext")
 
 
 

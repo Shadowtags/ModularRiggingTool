@@ -22,6 +22,17 @@ class SingleJointSegment(blueprint.Blueprint):
     # Installs module specific controls
     def Install_custom(self, _joints):
         self.CreateOrientationControl(_joints[0], _joints[1])
+
+    
+    def Mirror_Custom(self, _originalModule):
+        jointName = self.jointInfo[0][0]
+        originalJoint = "%s:%s" %(_originalModule, jointName)
+        newJoint = "%s:%s" %(self.moduleNamespace, jointName)
+        
+        originalOrientationControl = self.GetOrientationControl(originalJoint)
+        newOrientationControl = self.GetOrientationControl(newJoint)
+        
+        pm.setAttr("%s.rotateX" %newOrientationControl, pm.getAttr("%s.rotateX" %originalOrientationControl))
     
     
     def Lock_phase1(self):
