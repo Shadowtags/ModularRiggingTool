@@ -24,6 +24,9 @@ class Blueprint():
             
             if partitionInfo[1] != '' and partitionInfo[2] == '':
                 self.hookObject = _hookObjIn
+        
+        
+        self.canBeMirrored = True
     
     
     
@@ -885,3 +888,7 @@ class Blueprint():
         rootControl_hookConstraint = "%s_hookConstraint" %rootControl
         
         return pm.objExists(rootControl_hookConstraint)
+    
+    
+    def CanModuleBeMirrored(self):
+        return self.canBeMirrored

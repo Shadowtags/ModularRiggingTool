@@ -14,8 +14,16 @@ class Blueprint_UI:
         # Store UI elements in a dictionary
         self.UIElements = {}
         
+        # Refresh all UI
         if pm.window("blueprint_UI_window", exists = True):
             pm.deleteUI("blueprint_UI_window")
+
+        if pm.window("mirrorModule_UI_window", exists = True):
+            pm.deleteUI("mirrorModule_UI_window")
+        
+        if pm.window("groupSelected_UI_window", exists = True):
+            pm.deleteUI("groupSelected_UI_window")
+        
         
         
         windowWidth = 400
@@ -110,7 +118,7 @@ class Blueprint_UI:
         # Second row of buttons
         self.UIElements["groupSelectedBtn"] = pm.button(label = "Group Selected", command = self.GroupSelected, parent = self.UIElements["moduleButtons_rowColumns"])
         self.UIElements["ungroupBtn"] = pm.button(enable = False, label = "Ungroup", command = self.UngroupSelected, parent = self.UIElements["moduleButtons_rowColumns"])
-        self.UIElements["mirrorModuleBtn"] = pm.button(enable = False, label = "Mirror Module", parent = self.UIElements["moduleButtons_rowColumns"])
+        self.UIElements["mirrorModuleBtn"] = pm.button(enable = False, label = "Mirror Module", command = self.MirrorModule, parent = self.UIElements["moduleButtons_rowColumns"])
         
         # Third row of buttons
         pm.text(label = '', parent = self.UIElements["moduleButtons_rowColumns"])
@@ -259,12 +267,14 @@ class Blueprint_UI:
             currentModule = None
             
             pm.button(self.UIElements["ungroupBtn"], edit = True, enable = False)
+            pm.button(self.UIElements["mirrorModuleBtn"], edit = True, enable = False)
             
             if len(selectedNodes) == 1:
                 lastSelected = selectedNodes[0]
                 
                 if lastSelected.find("Group__") == 0:
                     pm.button(self.UIElements["ungroupBtn"], edit = True, enable = True)
+                    pm.button(self.UIElements["mirrorModuleBtn"], edit = True, enable = True, label = "Mirror Group")
                 
                 namespaceAndNode = utils.StripLeadingNamespace(lastSelected)
                 
@@ -298,15 +308,16 @@ class Blueprint_UI:
                 mod = __import__("Blueprint.%s" %currentModuleFile, {}, {}, [currentModuleFile])
                 reload(mod)
                 
-                
                 moduleClass = getattr(mod, mod.CLASS_NAME)
                 self.moduleInstance = moduleClass(userSpecifiedName, None)
+                
+                
+                pm.button(self.UIElements["mirrorModuleBtn"], edit = True, enable = True, label = "Mirror Module")
                 
                 if self.moduleInstance.IsRootConstrained():
                     constrainCommand = self.UnconstrainRootFromHook
                     constrainLabel = "Unconstrain Root"
             
-            pm.button(self.UIElements["mirrorModuleBtn"], edit = True, enable = controlEnable)
             
             pm.button(self.UIElements["rehookBtn"], edit = True, enable = controlEnable)
             pm.button(self.UIElements["snapRootBtn"], edit = True, enable = controlEnable)
@@ -434,3 +445,12 @@ class Blueprint_UI:
         reload(group)
         
         group.UngroupSelected()
+    
+    
+    
+    def MirrorModule(self, *args):
+        
+        import System.mirrorModule as mirror
+        reload(mirror)
+        
+        mirror.MirrorModule()
