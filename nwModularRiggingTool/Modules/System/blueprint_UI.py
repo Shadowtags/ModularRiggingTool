@@ -204,6 +204,10 @@ class Blueprint_UI:
         if result != 'Accept':
             return
         
+        
+        self.DeleteScriptJob()
+        
+        
         moduleInfo = []  # Store (module, userSpecifiedName) pairs
         
         # List all namespaces in scene from root

@@ -290,5 +290,3 @@ def DoesBlueprintUserSpecifiedNameExist(_name):
             names.append(namespace.partition('__')[2])
     
     return _name in names
-
-

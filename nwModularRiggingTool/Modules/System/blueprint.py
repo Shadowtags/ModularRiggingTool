@@ -478,6 +478,10 @@ class Blueprint():
         rootTransform = _moduleInfo[5]
         
         
+        mirrorInfo = None
+        oldModuleGrp = "%s:module_grp" %self.moduleNamespace
+        if pm.attributeQuery("mirrorInfo", node = oldModuleGrp, exists = True):
+            mirrorInfo = pm.getAttr("%s.mirrorInfo" %oldModuleGrp)
         
         
         # Delete our blueprint controls
@@ -661,6 +665,13 @@ class Blueprint():
         pm.container(moduleContainer, edit = True, publishAndBind = ["%s.creationPoseWeight" %settingsLocator, "creationPoseWeight"])
         
         
+        if mirrorInfo != None:
+            enumNames = "none:x:y:z"
+            pm.select(moduleGrp, replace = True)
+            pm.addAttr(attributeType = "enum", enumName = enumNames, longName = "mirrorInfo", keyable = False)
+            pm.setAttr("%s.mirrorInfo" %moduleGrp, mirrorInfo)
+        
+        
         pm.select(moduleGrp, replace = True)
         pm.addAttr(attributeType = "float", longName = "hierarchicalScale")
         pm.connectAttr("%s.scaleY" %hookGroup, "%s.hierarchicalScale" %moduleGrp)
@@ -721,7 +732,18 @@ class Blueprint():
             moduleClass = getattr(mod, mod.CLASS_NAME)
             moduleInst = moduleClass(module[1], None)
             moduleInst.Rehook(None)
+        
+        
+        # Remove mirror links attribute
+        if pm.attributeQuery("mirrorLinks", node = "%s:module_grp" %self.moduleNamespace, exists = True):
+            mirrorLinks = pm.getAttr("%s:module_grp.mirrorLinks" %self.moduleNamespace)
             
+            linkedBlueprint = mirrorLinks.rpartition("__")[0]
+            pm.lockNode("%s:module_container" %linkedBlueprint, lock = False, lockUnpublished = False)
+            
+            pm.deleteAttr("%s:module_grp.mirrorLinks" %linkedBlueprint)
+            
+            pm.lockNode("%s:module_container" %linkedBlueprint, lock = True, lockUnpublished = True)
         
         
         pm.delete(self.containerName)
@@ -754,6 +776,20 @@ class Blueprint():
             
             # Remove old namespace
             pm.namespace(removeNamespace = self.moduleNamespace)
+            
+            
+            if pm.attributeQuery("mirrorLinks", node = "%s:module_grp" %newNamespace, exists = True):
+                mirrorLinks = pm.getAttr("%s:module_grp.mirrorLinks" %newNamespace)
+                
+                nodeAndAxis = mirrorLinks.rpartition("__")
+                node = nodeAndAxis[0]
+                axis = nodeAndAxis[2]
+                
+                pm.lockNode("%s:module_container" %node, lock = False, lockUnpublished = False)
+                
+                pm.setAttr("%s:module_grp.mirrorLinks" %node, "%s__%s" %(newNamespace, axis), type = "string")
+                
+                pm.lockNode("%s:module_container" %node, lock = True, lockUnpublished = True)
             
             # Update variables
             self.moduleNamespace = newNamespace
