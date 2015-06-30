@@ -220,6 +220,25 @@ class GroupSelected:
 
 
 
+    def CreateGroupAtSpecified(self, _name, _targetGroup, _parent):
+        self.CreateTemporaryGroupRepresentation()
+    
+        parentConstraint = pm.parentConstraint(_targetGroup, self.tempGroupTransform, maintainOffset = False)
+        pm.delete(parentConstraint)
+    
+        scale = pm.getAttr("%s.globalScale" %_targetGroup)
+        pm.setAttr("%s.globalScale" %self.tempGroupTransform, scale)
+    
+        if _parent != None:
+            pm.parent(self.tempGroupTransform, _parent, absolute = True)
+    
+        newGroup = self.CreateGroup(_name)
+        
+        return newGroup
+
+
+
+
 class UngroupSelected:
     
     def __init__(self):

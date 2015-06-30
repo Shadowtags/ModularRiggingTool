@@ -1042,3 +1042,47 @@ class Blueprint():
         
         
         self.Mirror_Custom(_originalModule)
+        
+        
+        moduleGroup = "%s:module_grp" %self.moduleNamespace
+        pm.select(moduleGroup, replace = True)
+        
+        enumNames = "none:x:y:z"
+        pm.addAttr(attributeType = "enum", enumName = enumNames, longName = "mirrorInfo", k = False)
+        
+        enumValue = 0
+        if _translationFunction == "mirrored":
+            if _mirrorPlane == "YZ":
+                enumValue = 1
+            elif _mirrorPlane == "XZ":
+                enumValue = 2
+            elif _mirrorPlane == "XY":
+                enumValue = 3
+        
+        pm.setAttr("%s.mirrorInfo" %moduleGroup, enumValue)
+        
+        linkedAttribute = "mirrorLinks"
+        
+        pm.lockNode("%s:module_container" %_originalModule, lock = False, lockUnpublished = False)
+        
+        for moduleLink in ((_originalModule, self.moduleNamespace), (self.moduleNamespace, _originalModule)):
+            
+            moduleGroup = "%s:module_grp" %moduleLink[0]
+            attributeValue = "%s__" %moduleLink[1]
+            
+            if _mirrorPlane == "YZ":
+                attributeValue += "X"
+            elif _mirrorPlane == "XZ":
+                attributeValue += "Y"
+            elif _mirrorPlane == "XY":
+                attributeValue += "Z"
+            
+            pm.select(moduleGroup, replace = True)
+            
+            pm.addAttr(dataType = "string", longName = linkedAttribute, keyable = False)
+            pm.setAttr("%s.%s" %(moduleGroup, linkedAttribute), attributeValue, type = "string")
+        
+        for c in ["%s:module_container" %_originalModule, self.containerName]:
+            pm.lockNode(c, lock = True, lockUnpublished = True)
+        
+        pm.select(clear = True)

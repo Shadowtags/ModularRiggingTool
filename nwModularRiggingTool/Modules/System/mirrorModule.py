@@ -290,6 +290,7 @@ class MirrorModule:
                 module.append(validModules[index])
         
         
+        # COLLECT DATA FOR MIRRORING
         mirrorModulesProgress_progressIncrement = mirrorModulesProgress_stage1_proportion / len(self.moduleInfo)
         for module in self.moduleInfo:
             userSpecifiedName = module[0].partition("__")[2]
@@ -330,8 +331,8 @@ class MirrorModule:
             pm.progressWindow(mirrorModulesProgress_UI, edit = True, progress = mirrorModulesProgress)
         
         
-        
-        mirrorModulesProgress_progressIncement = mirrorModulesProgress_stage2_proportion / len(self.moduleInfo)
+        # MIRROR MODULE
+        mirrorModulesProgress_progressIncrement = mirrorModulesProgress_stage2_proportion / len(self.moduleInfo)
         for module in self.moduleInfo:
             newUserSpecifiedName = module[1].partition("__")[2]
             
@@ -344,11 +345,109 @@ class MirrorModule:
             moduleInst.Mirror(module[0], module[2], module[3], module[4])
             
             # Increment progress bar
-            mirrorModulesProgress += mirrorModulesProgress_progressIncement
+            mirrorModulesProgress += mirrorModulesProgress_progressIncrement
             pm.progressWindow(mirrorModulesProgress_UI, edit = True, progress = mirrorModulesProgress)
         
+        
+        # MIRROR HOOKED RELATIONS
+        mirrorModulesProgress_progressIncrement = mirrorModulesProgress_stage3_proportion / len (self.moduleInfo)
+        for module in self.moduleInfo:
+            newUserSpecifiedName = module[1].partition("__")[2]
+            
+            mod = __import__("Blueprint.%s" %module[5], {}, {}, [module[5]])
+            reload(mod)
+            
+            moduleClass = getattr(mod, mod.CLASS_NAME)
+            moduleInst = moduleClass(newUserSpecifiedName, None)
+            
+            moduleInst.Rehook(module[6])
+            
+            hookConstrained = module[7]
+            if hookConstrained:
+                moduleInst.ConstrainRootToHook()
+            
+            mirrorModulesProgress += mirrorModulesProgress_progressIncrement
+            pm.progressWindow(mirrorModulesProgress_UI, edit = True, progress = mirrorModulesProgress)
+        
+        
+        if self.group != None:
+            pm.lockNode("Group_container", lock = False, lockUnpublished = False)
+            
+            groupParent = pm.listRelatives(self.group, parent = True)
+            
+            if groupParent != []:
+                groupParent = groupParent = [0]
+            
+            self.ProcessGroup(self.group, groupParent)
+            
+            pm.lockNode("Group_container", lock = True, lockUnpublished = True)
+            
+            pm.select(clear = True)
         
         
         pm.progressWindow(mirrorModulesProgress_UI, edit = True, endProgress = True)
         
         utils.ForceSceneUpdate()
+    
+    
+    def ProcessGroup(self, _group, _groupParent):
+        
+        import System.groupSelected as groupSelected
+        reload(groupSelected)
+        
+        tempGroup = pm.duplicate(_group, parentOnly = True, inputConnections = True)[0]
+        emptyGroup = pm.group(empty = True)
+        pm.parent(tempGroup, emptyGroup, absolute = True)
+        
+        scaleAxis = ".scaleX"
+        if self.mirrorPlane == "XZ":
+            scaleAxis = ".scaleY"
+        elif self.mirrorPlane == "XY":
+            scaleAxis = ".scaleZ"
+        
+        pm.setAttr("%s%s" %(emptyGroup, scaleAxis), -1)
+        
+        instance = groupSelected.GroupSelected()
+        groupSuffix = _group.partition("__")[2]
+        newGroup = instance.CreateGroupAtSpecified("%s_mirror" %groupSuffix, tempGroup, _groupParent)
+        
+        pm.lockNode("Group_container", lock = False, lockUnpublished = False)
+        pm.delete(emptyGroup)
+        
+        for moduleLink in ( (_group, newGroup), (newGroup, _group) ):
+            attributeValue = "%s__" %moduleLink[1]
+            
+            if self.mirrorPlane == "YZ":
+                attributeValue += "X"
+            elif self.mirrorPlane == "XZ":
+                attributeValue += "Y"
+            elif self.mirrorPlane == "XY":
+                attributeValue += "Z"
+        
+            pm.select(moduleLink[0], replace = True)
+        
+            pm.addAttr(dataType = "string", longName = "mirrorLinks", keyable = False)
+            pm.setAttr("%s.mirrorLinks" %moduleLink[0], attributeValue, type = "string")
+        
+        pm.select(clear = True)
+        
+        children = pm.listRelatives(_group, children = True)
+        children = pm.ls(children, transforms = True)
+        
+        # Recursively process group heirarchy
+        for child in children:
+            if child.find("Group__") == 0:
+                self.ProcessGroup(child, newGroup)
+            else:
+                childNamespaces = utils.StripAllNamespaces(child)
+                
+                if childNamespaces != None and childNamespaces[1] == "module_transform":
+                    for module in self.moduleInfo:
+                        if childNamespaces[0] == module[0]:
+                            moduleContainer = "%s:module_container" %module[1]
+                            pm.lockNode(moduleContainer, lock = False, lockUnpublished = False)
+                            
+                            moduleTransform = "%s:module_transform" %module[1]
+                            pm.parent(moduleTransform, newGroup, absolute = True)
+                            
+                            pm.lockNode(moduleContainer, lock = True, lockUnpublished = True)
