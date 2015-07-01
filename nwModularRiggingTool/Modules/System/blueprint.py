@@ -2,6 +2,8 @@ import pymel.core as pm
 import System.utils as utils
 import os
 
+from functools import partial
+
 reload(utils)
 
 
@@ -692,6 +694,25 @@ class Blueprint():
         
         jointName = utils.StripAllNamespaces(_joint)[1]
         attrControlGroup = pm.attrControlGrp(attribute = "%s.rotateOrder" %_joint, label = jointName)
+        
+        pm.scriptJob(attributeChange = ["%s.rotateOrder" %_joint, partial(self.AttributeChange_callbackMethod, _joint, ".rotateOrder")], parent = attrControlGroup)
+    
+    
+    def AttributeChange_callbackMethod(self, _object, _attribute, *args):
+        
+        if pm.checkBox(self.blueprint_UI_instance.UIElements["symmetryMoveCheckBox"], query = True, value = True):
+            moduleInfo = utils.StripLeadingNamespace(_object)
+            module = moduleInfo[0]
+            objectName = moduleInfo[1]
+            
+            moduleGroup = "%s:module_grp" %module
+            if pm.attributeQuery("mirrorLinks", node = moduleGroup, exists = True):
+                mirrorLinks = pm.getAttr("%s.mirrorLinks" %moduleGroup)
+                mirrorModule = mirrorLinks.rpartition("__")[0]
+                
+                newValue = pm.getAttr("%s%s" %(_object, _attribute))
+                mirrorObj = "%s:%s" %(mirrorModule, objectName)
+                pm.setAttr("%s%s" %(mirrorObj, _attribute), newValue)
     
     
     def Delete(self):
