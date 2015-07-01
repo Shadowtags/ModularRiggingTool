@@ -11,6 +11,8 @@ class Blueprint_UI:
         
         self.moduleInstance = None
         
+        self.DeleteSymmetryMoveExpressions()
+        
         # Store UI elements in a dictionary
         self.UIElements = {}
         
@@ -123,7 +125,7 @@ class Blueprint_UI:
         # Third row of buttons
         pm.text(label = '', parent = self.UIElements["moduleButtons_rowColumns"])
         self.UIElements["deleteModuleBtn"] = pm.button(enable = False, label = "Delete Module", command = self.DeleteModule, parent = self.UIElements["moduleButtons_rowColumns"])
-        self.UIElements["symmetryMoveCheckBox"] = pm.checkBox(enable = True, label = "Symmetry Move", parent = self.UIElements["moduleButtons_rowColumns"])
+        self.UIElements["symmetryMoveCheckBox"] = pm.checkBox(enable = True, label = "Symmetry Move", onCommand = self.SetupSymmetryMoveExpressions_CheckBox, offCommand = self.DeleteSymmetryMoveExpressions, parent = self.UIElements["moduleButtons_rowColumns"])
         
         pm.separator(style = 'in', parent = self.UIElements["moduleColumn"])
         
@@ -204,6 +206,8 @@ class Blueprint_UI:
         if result != 'Accept':
             return
         
+        self.DeleteSymmetryMoveExpressions()
+        pm.checkBox(self.UIElements["symmetryMoveCheckBox"], edit = True, value = False)
         
         self.DeleteScriptJob()
         
@@ -263,6 +267,12 @@ class Blueprint_UI:
     
     
     def ModifySelected(self, *args):
+        
+        if pm.checkBox(self.UIElements["symmetryMoveCheckBox"], query = True, value = True):
+            self.DeleteSymmetryMoveExpressions()
+            self.SetupSymmetryMoveExpressions()
+        
+        
         selectedNodes = pm.ls(selection = True)
         
         if len(selectedNodes) <= 1:
@@ -353,15 +363,28 @@ class Blueprint_UI:
     
     
     def DeleteModule(self, *args):
-        self.moduleInstance.Delete()
+        symmetryMove = pm.checkBox(self.UIElements["symmetryMoveCheckBox"], query = True, value = True)
+        if symmetryMove:
+            self.DeleteSymmetryMoveExpressions()
         
+        self.moduleInstance.Delete()
         pm.select(clear = True)
+        
+        if symmetryMove:
+            self.SetupSymmetryMoveExpressions_CheckBox()
     
     
     def RenameModule(self, *args):
         newName = pm.textField(self.UIElements["moduleName"], query = True, text = True)
         
+        symmetryMove = pm.checkBox(self.UIElements["symmetryMoveCheckBox"], query = True, value = True)
+        if symmetryMove:
+            self.DeleteSymmetryMoveExpressions()
+        
         self.moduleInstance.RenameModuleInstance(newName)
+        
+        if symmetryMove:
+            self.SetupSymmetryMoveExpressions_CheckBox()
         
         previousSelected = pm.ls(selection = True)
         
@@ -458,3 +481,172 @@ class Blueprint_UI:
         reload(mirror)
         
         mirror.MirrorModule()
+    
+    
+    def SetupSymmetryMoveExpressions_CheckBox(self, *args):
+        self.DeleteScriptJob()
+        
+        self.SetupSymmetryMoveExpressions()
+        
+        self.CreateScriptJob()
+    
+    
+    
+    def SetupSymmetryMoveExpressions(self, *args):
+        pm.namespace(setNamespace = ":")
+        selection = pm.ls(selection = True, transforms = True)
+        
+        expressionContainer = pm.container(name = "symmetryMove_container")
+        
+        if len(selection) == 0:
+            return
+        
+        linkedObjs = []
+        for obj in selection:
+            if obj in linkedObjs:
+                continue
+            
+            # Apply symmetry to group
+            if obj.find("Group__") == 0:
+                if pm.attributeQuery("mirrorLinks", node = obj, exists = True):
+                    mirrorLinks = pm.getAttr("%s.mirrorLinks" %obj)
+                    groupInfo = mirrorLinks.rpartition("__")
+                    mirrorObj = groupInfo[0]
+                    axis = groupInfo[2]
+                    
+                    linkedObjs.append(mirrorObj)
+                    
+                    self.SetupSymmetryMoveForObject(obj, mirrorObj, axis, _translation = True, _orientation = True, _globalScale = True)
+            
+            else:
+                objNamespaceInfo = utils.StripLeadingNamespace(obj)
+                
+                if objNamespaceInfo != None:
+                    if pm.attributeQuery("mirrorLinks", node = "%s:module_grp" %objNamespaceInfo[0], exists = True):
+                        mirrorLinks = pm.getAttr("%s:module_grp.mirrorLinks" %objNamespaceInfo[0])
+                        
+                        moduleInfo = mirrorLinks.rpartition("__")
+                        module = moduleInfo[0]
+                        axis = moduleInfo[2]
+                        
+                        # Apply symmetry to translation control
+                        if objNamespaceInfo[1].find("translation_control") != -1:
+                            mirrorObj = "%s:%s" %(module, objNamespaceInfo[1])
+                            linkedObjs.append(mirrorObj)
+                            self.SetupSymmetryMoveForObject(obj, mirrorObj, axis, _translation = True, _orientation = False, _globalScale = False)
+                        
+                        # Apply symmetry to module transform
+                        elif objNamespaceInfo[1].find("module_transform") == 0:
+                            mirrorObj = "%s:module_transform" %module
+                            linkedObjs.append(mirrorObj)
+                            self.SetupSymmetryMoveForObject(obj, mirrorObj, axis, _translation = True, _orientation = True, _globalScale = True)
+                        
+                        # Apply symmetry to rotation control
+                        elif objNamespaceInfo[1].find("orientation_control") != -1:
+                            mirrorObj = "%s:%s" %(module, objNamespaceInfo[1])
+                            linkedObjs.append(mirrorObj)
+                            
+                            expressionString = "%s.rotateX = %s.rotateX;\n" %(mirrorObj, obj)
+                            expression = pm.expression(name = "%s_symmetryMoveExpression" %mirrorObj, string = expressionString)
+                            utils.AddNodeToContainer(expressionContainer, expression)
+                        
+                        # Apply symmetry to single orientation control
+                        elif objNamespaceInfo[1].find("singleJointOrientation_control") != -1:
+                            mirrorObj = "%s:%s" %(module, objNamespaceInfo[1])
+                            linkedObjs.append(mirrorObj)
+                            
+                            expressionString = "%s.rotateX = %s.rotateX;\n" %(mirrorObj, obj)
+                            expressionString += "%s.rotateY = %s.rotateY;\n" %(mirrorObj, obj)
+                            expressionString += "%s.rotateZ = %s.rotateZ;\n" %(mirrorObj, obj)
+                            
+                            expression = pm.expression(name = "%s_symmetryMoveExpression" %mirrorObj, string = expressionString)
+                            utils.AddNodeToContainer(expressionContainer, expression)
+        
+        pm.lockNode(expressionContainer, lock = True)
+        pm.select(selection, replace = True)
+    
+    
+    
+    def SetupSymmetryMoveForObject(self, _obj, _mirrorObj, _axis, _translation = False, _orientation = False, _globalScale = False):
+        
+        duplicateObject = pm.duplicate(_obj, parentOnly = True, inputConnections = True, name = "%s_mirrorHelper" %_obj)[0]
+        
+        emptyGroup = pm.group(empty = True, name = "%smirror_scale_grp" %_obj)
+        pm.parent(duplicateObject, emptyGroup, absolute = True)
+        
+        scaleAttribute = ".scale%s" %_axis
+        pm.setAttr("%s%s" %(emptyGroup, scaleAttribute), -1)
+        
+        # mel expression 'namespace -setNamespace ":";' causes update errors post Maya 2010
+        expressionString = ''
+        if _translation:
+            expressionString += '$worldSpacePos = `xform -query -worldSpace -translation %s`;\n' %_obj
+        if _orientation:
+            expressionString += '$worldSpaceOrient = `xform -query -worldSpace -rotation %s`;\n' %_obj
+        
+        
+        attrs = []
+        if _translation:
+            attrs.extend([".translateX", ".translateY", ".translateZ"])
+        if _orientation:
+            attrs.extend([".rotateX", ".rotateY", ".rotateZ"])
+        
+        
+        # Force an update of the expression
+        for attr in attrs:
+            expressionString += "%s%s = %s%s;\n" %(duplicateObject, attr, _obj, attr)
+        
+        
+        i = 0
+        for axis in ["X", "Y", "Z"]:
+            if _translation:
+                expressionString += "%s.translate%s = $worldSpacePos[%d];\n" %(duplicateObject, axis, i)
+            if _orientation:
+                expressionString += "%s.rotate%s = $worldSpaceOrient[%d];\n" %(duplicateObject, axis, i)
+            
+            i += 1
+        
+        
+        if _globalScale:
+            expressionString += "%s.globalScale = %s.globalScale;\n" %(duplicateObject, _obj)
+        
+        # Create unique expression name from namespace
+        expressionNames = utils.StripLeadingNamespace(duplicateObject)
+        expName = ''
+        
+        if expressionNames == None:
+            expName = '%s' %duplicateObject
+        else:
+            expName = "%s__%s" %(expressionNames[0], expressionNames[1])
+        
+        expression = pm.expression(name = "%s__symmetryMoveExpression" %expName, string = expressionString)
+        
+        
+        constraint = ''
+        if _translation and _orientation:
+            constraint = pm.parentConstraint(duplicateObject, _mirrorObj, maintainOffset = False, name = "%s_symmetryMoveConstraint" %_mirrorObj)
+        elif _translation:
+            constraint = pm.pointConstraint(duplicateObject, _mirrorObj, maintainOffset = False, name = "%s_symmetryMoveConstraint" %_mirrorObj)
+        elif _orientation:
+            constraint = pm.orientConstraint(duplicateObject, _mirrorObj, maintainOffset = False, name = "%s_symmetryMoveConstraint" %_mirrorObj)
+        
+        if _globalScale:
+            pm.connectAttr("%s.globalScale" %duplicateObject, "%s.globalScale" %_mirrorObj)
+        
+        
+        utils.AddNodeToContainer("symmetryMove_container", [duplicateObject, emptyGroup, expression, constraint], True)
+    
+    
+    def DeleteSymmetryMoveExpressions(self, *args):
+        container = "symmetryMove_container"
+        
+        if pm.objExists(container):
+            pm.lockNode(container, lock = False)
+            
+            nodes = pm.container(container, query = True, nodeList = True)
+            nodes = pm.ls(nodes, type = ["parentConstraint", "pointConstraint", "orientConstraint"])
+            
+            if len(nodes) > 0:
+                pm.delete(nodes)
+            
+            pm.delete(container)
