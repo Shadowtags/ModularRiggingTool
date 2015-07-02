@@ -2,7 +2,7 @@ import pymel.core as pm
 import os
 
 import System.blueprint as blueprint
-reload(blueprint)
+#reload(blueprint)
 
 
 CLASS_NAME = "SingleJointSegment"
@@ -24,7 +24,7 @@ class SingleJointSegment(blueprint.Blueprint):
         self.CreateOrientationControl(_joints[0], _joints[1])
 
     
-    def Mirror_Custom(self, _originalModule):
+    def Mirror_custom(self, _originalModule):
         jointName = self.jointInfo[0][0]
         originalJoint = "%s:%s" %(_originalModule, jointName)
         newJoint = "%s:%s" %(self.moduleNamespace, jointName)
@@ -88,4 +88,4 @@ class SingleJointSegment(blueprint.Blueprint):
     # Creates module specific UI controls
     def UI_custom(self):
         joints = self.GetJoints()
-        self.CreateRotationOrderControl(joints[0])
+        self.CreateRotationOrderUIControl(joints[0])

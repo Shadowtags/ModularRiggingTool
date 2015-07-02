@@ -39,7 +39,7 @@ class Blueprint():
         print "Install custom method is not implemented by the derived class"
     
     
-    def Mirror_Custom(self, _originalModule):
+    def Mirror_custom(self, _originalModule):
         print "Mirror_Custom() method is not implemented by derived class"
     
     
@@ -76,7 +76,9 @@ class Blueprint():
         self.jointsGrp = pm.group(empty = True, name = "%s:joints_grp" %self.moduleNamespace)
         self.hierarchyRepresentationGrp = pm.group(empty = True, name = "%s:hierarchyRepresentation_grp" %self.moduleNamespace)
         self.orientationGrp = pm.group(empty = True, name = "%s:orientationControls_grp" %self.moduleNamespace)
-        self.moduleGrp = pm.group([self.jointsGrp, self.hierarchyRepresentationGrp, self.orientationGrp], name = "%s:module_grp" %self.moduleNamespace)
+        self.preferredAngleRepresentationGroup = pm.group(empty = True, name = "%s:preferredAngleRepresentation_grp")
+        
+        self.moduleGrp = pm.group([self.jointsGrp, self.hierarchyRepresentationGrp, self.orientationGrp, self.preferredAngleRepresentationGroup], name = "%s:module_grp" %self.moduleNamespace)
         
         pm.container(name = self.containerName, addNode = self.moduleGrp, includeHierarchyBelow = True)
         
@@ -154,8 +156,6 @@ class Blueprint():
                 index += 1
         
         
-        
-        
         # Parent joint chain into joint group
         pm.parent(joints[0], self.jointsGrp, absolute = True)
         
@@ -181,7 +181,7 @@ class Blueprint():
         
         # Setup strechy joint segment
         for index in range(len(joints) - 1):
-            self.SetupStrechyJointSegment(joints[index], joints[index + 1])
+            self.SetupStretchyJointSegment(joints[index], joints[index + 1])
         
         
         # NON DEFAULT FUNCTUNALITY
@@ -237,7 +237,7 @@ class Blueprint():
     
     
     
-    def SetupStrechyJointSegment(self, _parentJoint, _childJoint):
+    def SetupStretchyJointSegment(self, _parentJoint, _childJoint):
         
         parentTranslationControl = self.GetTranslationControl(_parentJoint)
         childTranslationControl = self.GetTranslationControl(_childJoint)
@@ -252,6 +252,7 @@ class Blueprint():
         
         pm.setAttr("%s.visibility" %poleVectorLocator, 0)
         pm.setAttr("%s.ty" %poleVectorLocator, -0.5)
+        
         
         # Create the stretchy setup and collect the nodes returned
         ikNodes = utils.BasicStretchyIK(_parentJoint, _childJoint, _container = self.containerName, _lockMinimumLength = False, _poleVectorObject = poleVectorLocator, _scaleCorrectionAttribute = None)
@@ -690,7 +691,7 @@ class Blueprint():
     
     
     
-    def CreateRotationOrderControl(self, _joint):
+    def CreateRotationOrderUIControl(self, _joint):
         
         jointName = utils.StripAllNamespaces(_joint)[1]
         attrControlGroup = pm.attrControlGrp(attribute = "%s.rotateOrder" %_joint, label = jointName)
@@ -1098,7 +1099,7 @@ class Blueprint():
             index += 1
         
         
-        self.Mirror_Custom(_originalModule)
+        self.Mirror_custom(_originalModule)
         
         
         moduleGroup = "%s:module_grp" %self.moduleNamespace
@@ -1143,3 +1144,54 @@ class Blueprint():
             pm.lockNode(c, lock = True, lockUnpublished = True)
         
         pm.select(clear = True)
+    
+    
+    
+    def CreatePreferredAngleRepresentation(self, _joint, _scaleTarget, _childOfOrientationControl = False):
+        
+        preferredAngleRepFile = "%s/ControlObjects/Blueprint/preferredAngle_representation.ma" %os.environ["RIGGING_TOOL_ROOT"]
+        pm.importFile(preferredAngleRepFile)
+        
+        container = pm.rename("preferredAngle_representation_container", "%s_preferredAngle_representation_container" %_joint)
+        utils.AddNodeToContainer(self.containerName, container)
+        
+        for node in pm.container(container, query = True, nodeList = True):
+            pm.rename(node, "%s_%s" %(_joint, node), ignoreShape = True)
+        
+        control = "%s_preferredAngle_representation" %_joint
+        controlName = utils.StripAllNamespaces(control)[1]
+        pm.container(self.containerName, edit = True, publishAndBind = ["%s.axis" %container, "%s_axis" %controlName])
+        
+        controlGroup = pm.group(control, name = "%s_preferredAngle_parentConstrainGrp" %_joint, absolute = True)
+        containedNodes = [controlGroup]
+        
+        pm.parent(controlGroup, self.preferredAngleRepresentationGroup, absolute = True)
+        
+        containedNodes.append(pm.parentConstraint(_joint, controlGroup, maintainOffset = False))
+        
+        if _childOfOrientationControl:
+            rotateXGrp = pm.group(control, name = "%s_rotateX_grp" %control, absolute = True)
+            orientationControl = self.GetOrientationControl(_joint)
+            
+            pm.connectAttr("%s.rotateX" %orientationControl, "%s.rotateX" %rotateXGrp)
+            
+            containedNodes.append(rotateXGrp)
+        
+        containedNodes.append(pm.scaleConstraint(_scaleTarget, controlGroup, maintainOffset = False))
+        
+        utils.AddNodeToContainer(container, containedNodes)
+        
+        return control
+    
+    
+    def GetPreferredAngleControl(self, _jointName):
+        return "%s_preferredAngle_representation" %_jointName
+    
+    
+    def CreatePreferredAngleUIControl(self, _preferredAngle_representation):
+        
+        label = utils.StripLeadingNamespace(_preferredAngle_representation)[1].partition("_representation")[0]
+        enumOptionMenu = pm.attrEnumOptionMenu(label = label, attribute = "%s.axis" %_preferredAngle_representation)
+        
+        pm.scriptJob(attributeChange = ["%s.axis" %_preferredAngle_representation, partial(self.AttributeChange_callbackMethod, _preferredAngle_representation, ".axis")], parent = enumOptionMenu)
+        

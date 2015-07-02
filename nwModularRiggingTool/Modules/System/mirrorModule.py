@@ -331,6 +331,8 @@ class MirrorModule:
             pm.progressWindow(mirrorModulesProgress_UI, edit = True, progress = mirrorModulesProgress)
         
         
+        
+        
         # MIRROR MODULE
         mirrorModulesProgress_progressIncrement = mirrorModulesProgress_stage2_proportion / len(self.moduleInfo)
         for module in self.moduleInfo:
@@ -347,6 +349,8 @@ class MirrorModule:
             # Increment progress bar
             mirrorModulesProgress += mirrorModulesProgress_progressIncrement
             pm.progressWindow(mirrorModulesProgress_UI, edit = True, progress = mirrorModulesProgress)
+        
+        
         
         
         # MIRROR HOOKED RELATIONS
@@ -368,6 +372,7 @@ class MirrorModule:
             
             mirrorModulesProgress += mirrorModulesProgress_progressIncrement
             pm.progressWindow(mirrorModulesProgress_UI, edit = True, progress = mirrorModulesProgress)
+        
         
         
         if self.group != None:

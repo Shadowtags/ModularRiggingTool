@@ -120,10 +120,11 @@ def BasicStretchyIK(_rootJoint, _endJoint, _container = None, _lockMinimumLength
         children = pm.listRelatives(parent, children = True)
         children = pm.ls(children, type = 'joint')
         
-        # Loop until end of joint chain
+        # Empty list, break loop
         if len(children) == 0:
             done = True
         
+        # Loop until end of joint chain
         else:
             child = children[0]
             childJoints.append(child)
@@ -132,9 +133,8 @@ def BasicStretchyIK(_rootJoint, _endJoint, _container = None, _lockMinimumLength
             
             parent = child
             
-            if child == _endJoint:
+            if repr(child) == repr(_endJoint):
                 done = True
-    
     
     
     # Create RP IK on joint chain

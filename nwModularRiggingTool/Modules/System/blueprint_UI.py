@@ -29,14 +29,14 @@ class Blueprint_UI:
         
         
         windowWidth = 400
-        windowHeight = 598
+        windowHeight = 698
         
         self.UIElements["window"] = pm.window("blueprint_UI_window", width = windowWidth, height = windowHeight, title = "Blueprint Modue UI", sizeable = False)
         
         self.UIElements["topLevelColumn"] = pm.columnLayout(adjustableColumn = True, columnAlign = "center", parent = self.UIElements["window"])
         
         # setup tabs
-        tabHeight = 500
+        tabHeight = 580
         self.UIElements["tabs"] = pm.tabLayout(width = windowWidth, height = tabHeight, innerMarginWidth = 5, innerMarginHeight = 5, parent = self.UIElements["topLevelColumn"])
         
         tabWidth = pm.tabLayout(self.UIElements["tabs"], query = True, width = True)
@@ -78,7 +78,7 @@ class Blueprint_UI:
     
     def InitializeModuleTab(self, _tabWidth, _tabHeight):
         
-        moduleSpecific_scrollHeight = 120
+        moduleSpecific_scrollHeight = 170
         scrollHeight = _tabHeight - moduleSpecific_scrollHeight - 163
         
         
@@ -251,8 +251,8 @@ class Blueprint_UI:
             moduleClass = getattr(mod, mod.CLASS_NAME)
             moduleInst = moduleClass(module[1], None)
             
-            moduleInfo = moduleInst.Lock_phase1()
-            moduleInstances.append((moduleInst, moduleInfo))
+            moduleInf = moduleInst.Lock_phase1()
+            moduleInstances.append((moduleInst, moduleInf))
         
         
         # Lock phase 2
