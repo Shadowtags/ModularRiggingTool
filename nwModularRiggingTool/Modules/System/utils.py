@@ -290,3 +290,99 @@ def DoesBlueprintUserSpecifiedNameExist(_name):
             names.append(namespace.partition('__')[2])
     
     return _name in names
+
+
+def RP_2segment_stretchy_IK(_rootJoint, _hingeJoint, _endJoint, _container = None, _scaleCorrectionAttribute = None):
+    
+    moduleNamespaceInfo = StripAllNamespaces(_rootJoint)
+    
+    moduleNamespace = ""
+    if moduleNamespaceInfo != None:
+        moduleNamespace = moduleNamespaceInfo[0]
+    
+    rootLocation = pm.xform(_rootJoint, query = True, worldSpace = True, translation = True)
+    elbowLocation = pm.xform(_hingeJoint, query = True, worldSpace = True, translation = True)
+    endLocation = pm.xform(_endJoint, query = True, worldSpace = True, translation = True)
+    
+    # Create Rotate-Plane IK
+    ikNodes = pm.ikHandle(startJoint = _rootJoint, endEffector = _endJoint, name = "%s_ikHandle" %_rootJoint, solver = "ikRPsolver")
+    ikNodes[1] = pm.rename(ikNodes[1], "%s_ikEffector" %_rootJoint)
+    ikHandle = ikNodes[0]
+    ikEffector = ikNodes[1]
+    
+    pm.setAttr("%s.visibility" %ikHandle, 0)
+    
+    # Create control locators
+    rootLocator = pm.spaceLocator(name = "%s_positionLocator" %_rootJoint)
+    pm.xform(rootLocator, worldSpace = True, absolute = True, translation = rootLocation)
+    pm.parent(_rootJoint, rootLocator, absolute = True)
+    
+    endLocator = pm.spaceLocator(name = "%s_positionLocator" %ikHandle)
+    pm.xform(endLocator, worldSpace = True, absolute = True, translation = endLocation)
+    pm.parent(ikHandle, endLocator, absolute = True)
+    
+    elbowLocator = pm.spaceLocator(name = "%s_positionLocator" %_hingeJoint)
+    pm.xform(elbowLocator, worldSpace = True, absolute = True, translation = elbowLocation)
+    elbowLocatorConstraint = pm.poleVectorConstraint(elbowLocator, ikHandle)
+    
+    # Create stretchy setup
+    utilityNodes = []
+    for locators in ( (rootLocator, elbowLocator, _hingeJoint), (elbowLocator, endLocator, _endJoint) ):
+        from math import fabs
+        
+        
+        startLocatorNamespaceInfo = StripAllNamespaces(locators[0])
+        startLocatorWithoutNamespace = ""
+        
+        if startLocatorNamespaceInfo != None:
+            startLocatorWithoutNamespace = startLocatorNamespaceInfo[1]
+        
+        
+        endLocatorNamespaceInfo = StripAllNamespaces(locators[1])
+        endLocatorWithoutNamespace = ""
+        
+        if endLocatorNamespaceInfo != None:
+            endLocatorWithoutNamespace = startLocatorNamespaceInfo[1]
+        
+        
+        startLocatorShape = "%sShape" %locators[0]
+        endLocatorShape = "%sShape" %locators[1]
+        
+        # Setup utility nodes
+        distNode = pm.shadingNode("distanceBetween", asUtility = True, name = "%s:distBetween_%s_%s" %(moduleNamespace, startLocatorWithoutNamespace, endLocatorWithoutNamespace))
+        pm.connectAttr("%s.worldPosition[0]" %startLocatorShape, "%s.point1" %distNode)
+        pm.connectAttr("%s.worldPosition[0]" %endLocatorShape, "%s.point2" %distNode)
+        
+        utilityNodes.append(distNode)
+        
+        scaleFactor = pm.shadingNode("multiplyDivide", asUtility = True, name = "%s_scaleFactor" %distNode)
+        utilityNodes.append(scaleFactor)
+        
+        pm.setAttr("%s.operation" %scaleFactor, 2)  # divide
+        originalLength = pm.getAttr("%s.translateX" %locators[2])
+        
+        pm.connectAttr("%s.distance" %distNode, "%s.input1X" %scaleFactor)
+        pm.setAttr("%s.input2X" %scaleFactor, originalLength)
+        
+        translationDriver = "%s.outputX" %scaleFactor
+        
+        
+        translateX = pm.shadingNode("multiplyDivide", asUtility = True, name = "%s_translationValue" %distNode)
+        utilityNodes.append(translateX)
+        pm.setAttr("%s.input1X" %translateX, fabs(originalLength))
+        pm.connectAttr(translationDriver, "%s.input2X" %translateX)
+        
+        pm.connectAttr("%s.outputX" %translateX, "%s.translateX" %locators[2])
+    
+    
+    # Add created nodes to container
+    if _container != None:
+        containedNodes = list(utilityNodes)
+        containedNodes.extend(ikNodes)
+        containedNodes.extend([rootLocator, elbowLocator, endLocator])
+        containedNodes.append(elbowLocatorConstraint)
+        
+        AddNodeToContainer(_container, containedNodes, _includeHierarchyBelow=True)
+    
+    
+    return (rootLocator, elbowLocator, endLocator, utilityNodes)

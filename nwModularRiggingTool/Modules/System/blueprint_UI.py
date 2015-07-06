@@ -29,14 +29,14 @@ class Blueprint_UI:
         
         
         windowWidth = 400
-        windowHeight = 698
+        windowHeight = 748
         
         self.UIElements["window"] = pm.window("blueprint_UI_window", width = windowWidth, height = windowHeight, title = "Blueprint Modue UI", sizeable = False)
         
         self.UIElements["topLevelColumn"] = pm.columnLayout(adjustableColumn = True, columnAlign = "center", parent = self.UIElements["window"])
         
         # setup tabs
-        tabHeight = 580
+        tabHeight = 630
         self.UIElements["tabs"] = pm.tabLayout(width = windowWidth, height = tabHeight, innerMarginWidth = 5, innerMarginHeight = 5, parent = self.UIElements["topLevelColumn"])
         
         tabWidth = pm.tabLayout(self.UIElements["tabs"], query = True, width = True)

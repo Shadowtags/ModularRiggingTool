@@ -1194,4 +1194,38 @@ class Blueprint():
         enumOptionMenu = pm.attrEnumOptionMenu(label = label, attribute = "%s.axis" %_preferredAngle_representation)
         
         pm.scriptJob(attributeChange = ["%s.axis" %_preferredAngle_representation, partial(self.AttributeChange_callbackMethod, _preferredAngle_representation, ".axis")], parent = enumOptionMenu)
+    
+    
+    def CreateSingleJointOrientationControlAtJoint(self, _joint):
         
+        controlFile = "%s/ControlObjects/Blueprint/singleJointOrientation_control.ma" %os.environ["RIGGING_TOOL_ROOT"]
+        pm.importFile(controlFile)
+        
+        container = pm.rename("singleJointOrientation_control_container", "%s_singleJointOrientation_control_container" %_joint)
+        utils.AddNodeToContainer(self.containerName, container)
+        
+        for node in pm.container(container, query = True, nodeList = True):
+            pm.rename(node, "%s_%s" %(_joint, node), ignoreShape = True)
+        
+        control = "%s_singleJointOrientation_control"  %_joint
+        pm.parent(control, self.moduleTransform, absolute = True)
+        
+        translationControl = self.GetTranslationControl(_joint)
+        
+        pointConstraint = pm.pointConstraint(translationControl, control, maintainOffset = False, name = "%s_pointConstraint" %control)
+        utils.AddNodeToContainer(self.containerName, pointConstraint)
+        
+        jointOrient = pm.xform(_joint, query = True, worldSpace = True, rotation = True)
+        pm.xform(control, worldSpace = True, absolute = True, rotation = jointOrient)
+        
+        jointNameWithoutNamespace = utils.StripLeadingNamespace(_joint)[1]
+        attrName = "%s_R" %jointNameWithoutNamespace
+        
+        pm.container(container, edit = True, publishAndBind = ["%s.rotate" %control, attrName])
+        pm.container(self.containerName, edit = True, publishAndBind = ["%s.%s" %(container, attrName), attrName])
+        
+        return control
+    
+    
+    def GetSingleJointOrientationControl(self, _jointName):
+        return "%s_singleJointOrientation_control" %_jointName
