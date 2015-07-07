@@ -222,3 +222,67 @@ class Spline(blueprint.Blueprint):
 		self.blueprint_UI_instance.CreateScriptJob()
 		
 		pm.select("%s:module_transform" %newInstance.moduleNamespace, replace = True)
+	
+	
+	
+	def Lock_phase1(self):
+
+		# Gather and return all require information from this module's control objects
+	
+		# jointPositions = List of joint position, from root down the hierarchy
+		# jointOrientations = list of orientations, or list of axis information (orientJoint and secondaryAxisOrient for joint command)
+		#               # These are passed in the following tuple: (orientation, None) or (None, axisInfo)
+	
+		# jointRotationOrder = list of joint rotation orders (integer values gathered with getAttr)
+		# jointPreferredAngles = list of joint preferred angles, optional (can pass None)
+		# hookObject = self.FindHookObjectForLock()
+		# rootTransform = bool, either true or false. True = rotate, translate and scale on root joint. False = rotate only
+	
+		# moduleInfo = (jointPositions, jointOrientations, jointRotationOrders, jointPreferredAngles, hookObject, rootTransform)
+		# return moduleInfo
+	
+		jointPositions = []
+		jointOrientationValues = []
+		jointRotationOrders = []
+		jointPreferredAngles = []
+	
+		joints = self.GetJoints()
+		
+		jointOrientationSettings = []
+		moduleGrp = "%s:module_grp" %self.moduleNamespace
+		
+		
+		localAxis = pm.getAttr("%s.sao_local" %moduleGrp)
+		if localAxis == 0:
+			jointOrientationSettings.append("xyz")
+		else:
+			jointOrientationSettings.append("xzy")
+		
+		
+		worldAxis = pm.getAttr("%s.sao_world" %moduleGrp)
+		if worldAxis == 0:
+			jointOrientationSettings.append("xup")
+		elif worldAxis == 1:
+			jointOrientationSettings.append("xdown")
+		elif worldAxis == 2:
+			jointOrientationSettings.append("yup")
+		elif worldAxis == 3:
+			jointOrientationSettings.append("ydown")
+		elif worldAxis == 4:
+			jointOrientationSettings.append("zup")
+		elif worldAxis == 5:
+			jointOrientationSettings.append("zdown")
+		
+		
+		for joint in joints:
+			jointPositions.append(pm.xform(joint, query = True, worldSpace = True, translation = True))
+			jointRotationOrders.append(pm.getAttr("%s.rotateOrder" %joints[0]))
+			jointOrientationValues.append(jointOrientationSettings)
+		
+		
+		jointOrientations = (None, jointOrientationValues)
+		hookObject = self.FindHookObjectForLock()
+		rootTransform = True
+		
+		moduleInfo = (jointPositions, jointOrientations, jointRotationOrders, jointPreferredAngles, hookObject, rootTransform)
+		return moduleInfo
