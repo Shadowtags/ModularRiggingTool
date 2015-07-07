@@ -386,3 +386,23 @@ def RP_2segment_stretchy_IK(_rootJoint, _hingeJoint, _endJoint, _container = Non
     
     
     return (rootLocator, elbowLocator, endLocator, utilityNodes)
+
+
+def FindJointChain(_rootJoint):
+    
+    joints = [_rootJoint]
+    parent = _rootJoint
+    done = False
+    
+    while not done:
+        children = pm.listRelatives(parent, children = True)
+        children = pm.ls(children, type = "joint")
+        
+        if len(children) == 0:
+            done = True
+        else:
+            child = children[0]
+            joints.append(child)
+            parent = child
+    
+    return joints
