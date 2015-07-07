@@ -3,7 +3,7 @@ import os
 
 import System.blueprint as blueprint
 import System.utils as utils
-reload(blueprint)
+#reload(blueprint)
 reload(utils)
 
 CLASS_NAME = "SingleOrientableJoint"

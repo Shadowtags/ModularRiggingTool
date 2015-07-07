@@ -34,11 +34,13 @@ class HingeJoint(blueprint.Blueprint):
 				ikJoints.append(pm.joint(name = "%s:IK_%s" %(self.moduleNamespace, joint[0]), position = joint[1], absolute = True, rotationOrder = "xyz"))
 				pm.setAttr("%s.visibility" %ikJoints[index], 0)
 				
+				# Orient parent joint after children
 				if index != 0:
 					pm.joint(ikJoints[index - 1], edit = True, orientJoint = "xyz", secondaryAxisOrient = "yup")
 				
 				index += 1
 		
+		# Mirror module
 		else:
 			rootJointName = self.jointInfo[0][0]
 			tempDuplicateNodes = pm.duplicate("%s:IK_%s" %(self.originalModule, rootJointName), renameChildren = True)

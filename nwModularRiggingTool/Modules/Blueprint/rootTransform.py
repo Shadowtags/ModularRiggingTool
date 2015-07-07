@@ -5,9 +5,9 @@ import System.blueprint as blueprint
 import System.utils as utils
 import Blueprint.singleOrientableJoint as singleOrientableJoint
 
-reload(blueprint)
+#reload(blueprint)
+#reload(singleOrientableJoint)
 reload(utils)
-reload(singleOrientableJoint)
 
 CLASS_NAME = "RootTransform"
 TITLE = "Root Transform"

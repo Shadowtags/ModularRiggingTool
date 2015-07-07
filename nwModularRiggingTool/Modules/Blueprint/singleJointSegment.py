@@ -63,7 +63,7 @@ class SingleJointSegment(blueprint.Blueprint):
         for joint in joints:
             jointPositions.append(pm.xform(joint, query = True, worldSpace = True, translation = True))
         
-        OrientationInfo = self.OrientationControlJoint_getOrientation(joints[0], cleanParent)
+        OrientationInfo = self.OrientationControlledJoint_getOrientation(joints[0], cleanParent)
         
         jointOrientationValues.append(OrientationInfo[0])
         jointOrientations = (jointOrientationValues, None)

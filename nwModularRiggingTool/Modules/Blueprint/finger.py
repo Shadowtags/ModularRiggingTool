@@ -97,7 +97,7 @@ class Finger(blueprint.Blueprint):
 			jointRotationOrders.append(pm.getAttr("%s.rotateOrder" %joint))
 			
 			if index < len(joints) - 1:
-				orientationInfo = self.OrientationControlJoint_getOrientation(joint, cleanParent)
+				orientationInfo = self.OrientationControlledJoint_getOrientation(joint, cleanParent)
 				
 				
 				jointOrientationValues.append(orientationInfo[0])

@@ -418,7 +418,7 @@ class Blueprint():
     
     
     
-    def OrientationControlJoint_getOrientation(self, _joint, _cleanParent):
+    def OrientationControlledJoint_getOrientation(self, _joint, _cleanParent):
         
         # Create clean copy of joint, as to be able to get the orientation values without destroying any connections
         newCleanParent = pm.duplicate(_joint, parentOnly = True)[0]
