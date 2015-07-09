@@ -16,6 +16,7 @@ class Blueprint():
         
         self.moduleNamespace = "%s__%s" %(self.moduleName, self.userSpecifiedName)
         
+        
         self.containerName = "%s:module_container" %self.moduleNamespace
         
         self.jointInfo = _jointInfo
@@ -76,7 +77,7 @@ class Blueprint():
         self.jointsGrp = pm.group(empty = True, name = "%s:joints_grp" %self.moduleNamespace)
         self.hierarchyRepresentationGrp = pm.group(empty = True, name = "%s:hierarchyRepresentation_grp" %self.moduleNamespace)
         self.orientationGrp = pm.group(empty = True, name = "%s:orientationControls_grp" %self.moduleNamespace)
-        self.preferredAngleRepresentationGroup = pm.group(empty = True, name = "%s:preferredAngleRepresentation_grp")
+        self.preferredAngleRepresentationGroup = pm.group(empty = True, name = "%s:preferredAngleRepresentation_grp" %self.moduleNamespace)
         
         self.moduleGrp = pm.group([self.jointsGrp, self.hierarchyRepresentationGrp, self.orientationGrp, self.preferredAngleRepresentationGroup], name = "%s:module_grp" %self.moduleNamespace)
         

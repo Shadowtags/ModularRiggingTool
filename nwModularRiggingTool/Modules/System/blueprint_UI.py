@@ -1,4 +1,5 @@
 import pymel.core as pm
+import os
 from functools import partial
 
 import System.utils as utils
@@ -26,6 +27,9 @@ class Blueprint_UI:
         if pm.window("groupSelected_UI_window", exists = True):
             pm.deleteUI("groupSelected_UI_window")
         
+        if pm.window("saveTemplate_UI_window", exists = True):
+            pm.deleteUI("saveTemplate_UI_window")
+        
         
         
         windowWidth = 400
@@ -35,7 +39,7 @@ class Blueprint_UI:
         
         self.UIElements["topLevelColumn"] = pm.columnLayout(adjustableColumn = True, columnAlign = "center", parent = self.UIElements["window"])
         
-        # setup tabs
+        # Setup tab
         tabHeight = 630
         self.UIElements["tabs"] = pm.tabLayout(width = windowWidth, height = tabHeight, innerMarginWidth = 5, innerMarginHeight = 5, parent = self.UIElements["topLevelColumn"])
         
@@ -44,7 +48,13 @@ class Blueprint_UI:
         
         self.InitializeModuleTab(tabWidth, tabHeight)
         
-        pm.tabLayout(self.UIElements["tabs"], edit = True, tabLabelIndex = ([1, 'Modules']) )
+        
+        # Template tab
+        self.InitializeTemplatesTab(tabHeight, tabWidth)
+        
+        
+        
+        pm.tabLayout(self.UIElements["tabs"], edit = True, tabLabelIndex = ([1, 'Modules'], [2, 'Templates']) )
         
         
         self.UIElements["lockPublishColumn"] = pm.columnLayout(adjustableColumn = True, columnAlign = 'center', rowSpacing = 3, parent = self.UIElements["topLevelColumn"])
@@ -139,6 +149,33 @@ class Blueprint_UI:
         pm.separator(style = 'in', parent = self.UIElements["moduleColumn"])
     
     
+    def InitializeTemplatesTab(self, _tabHeight, _tabWidth):
+        
+        self.UIElements["templatesColumn"] = pm.columnLayout(adjustableColumn = True, rowSpacing = 3, columnAttach = ["both", 0], parent = self.UIElements["tabs"])
+        
+        self.UIElements["templatesFrame"] = pm.frameLayout(height = (_tabHeight - 104), collapsable = False, borderVisible = False, labelVisible = False, parent = self.UIElements["templatesColumn"])
+        self.UIElements["templateList_scroll"] = pm.scrollLayout(horizontalScrollBarThickness = 0, parent = self.UIElements["templatesFrame"])
+        self.UIElements["templateList_column"] = pm.columnLayout(adjustableColumn = True, rowSpacing = 2, parent = self.UIElements["templateList_scroll"])
+        
+        pm.separator(style = 'in', parent = self.UIElements["templateList_column"])
+        
+        for template in utils.FindAllMayaFiles("/Templates"):
+            
+            templateAndPath = "%s/Templates/%s.ma" %(os.environ["RIGGING_TOOL_ROOT"], template)
+            self.CreateTemplateInstallButton(templateAndPath)
+        
+        
+        pm.separator(style = 'in', parent = self.UIElements["templatesColumn"])
+        
+        self.UIElements["prepareTemplateBtn"] = pm.button(label = "Prepare for Template", command = self.PrepareForTemplate, parent = self.UIElements["templatesColumn"])
+        
+        pm.separator(style = 'in', parent = self.UIElements["templatesColumn"])
+        
+        self.UIElements["saveCurrentBtn"] = pm.button(label = "Save Current as Template", command = self.SaveCurrentAsTemplate, parent = self.UIElements["templatesColumn"])
+        
+        pm.separator(style = 'in', parent = self.UIElements["templatesColumn"])
+    
+    
     
     def CreateModuleInstallButton(self, _module):
         
@@ -161,6 +198,26 @@ class Blueprint_UI:
         pm.scrollField(text = description, editable = False, width = self.scrollWidth - buttonSize - 16, height = buttonSize - 16, wordWrap = True, parent = textColumn)
     
     
+    def CreateTemplateInstallButton(self, _templateAndPath):
+        buttonSize = 64
+        
+        templateDescriptionFile = "%s.txt" %_templateAndPath.partition(".ma")[0]
+        
+        with open(templateDescriptionFile, 'r') as file:
+            
+            title = file.readline()[0:-1]
+            description = file.readline()[0:-1]
+            icon = file.readline()[0:-1]
+        
+        row = pm.rowLayout(width = self.scrollWidth, numberOfColumns = 2, columnWidth = ([1, buttonSize], [2, self.scrollWidth - buttonSize]), adjustableColumn = 2, columnAttach = ([1, "both", 0], [2, "both", 5]), parent = self.UIElements["templateList_column"])
+        self.UIElements["templat_button_%s" %_templateAndPath] = pm.symbolButton(width = buttonSize, height = buttonSize, image = icon, command = partial(self.InstallTemplate, _templateAndPath), parent = row)
+        
+        textColumn = pm.columnLayout(columnAlign = "center", parent = row)
+        pm.text(align = "center", width = self.scrollWidth - buttonSize - 16, label = title, parent = textColumn)
+        pm.scrollField(text = description, editable = False, width = self.scrollWidth - buttonSize - 16, height = buttonSize - 16, wordWrap = True, parent = textColumn)
+        
+        pm.separator(style = "in", parent = self.UIElements["templateList_column"])
+    
     
     def InstallModule(self, _module, *args):
         
@@ -169,6 +226,7 @@ class Blueprint_UI:
         # Set namespace to root and list all namespaces in scene
         pm.namespace(setNamespace = ':')
         namespaces = pm.namespaceInfo(listOnlyNamespaces = True)
+        
         
         # Find our module namespace
         for i in range(len(namespaces)):
@@ -650,3 +708,297 @@ class Blueprint_UI:
                 pm.delete(nodes)
             
             pm.delete(container)
+    
+    
+    def PrepareForTemplate(self, *args):
+        
+        pm.select(all = True)
+        rootLevelNodes = pm.ls(selection = True, transforms = True)
+        
+        filteredNodes = []
+        for node in rootLevelNodes:
+            
+            if node.find("Group__") == 0:
+                filteredNodes.append(node)
+            else:
+                nodeNamespaceInfo = utils.StripAllNamespaces(node)
+                
+                if nodeNamespaceInfo != None:
+                    if nodeNamespaceInfo[1] == "module_transform":
+                        filteredNodes.append(node)
+        
+        
+        pm.select(filteredNodes, replace = True)
+        self.GroupSelected()
+    
+    
+    def SaveCurrentAsTemplate(self, *args):
+        
+        self.saveTemplateUIElements = {}
+        
+        if pm.window("saveTemplate_UI_window", exists = True):
+            pm.deleteUI("saveTemplate_UI_window")
+        
+        windowWidth = 300
+        windowHeight = 152
+        self.saveTemplateUIElements["window"] = pm.window("saveTemplate_UI_window", width = windowWidth, height = windowHeight, title = "Save Current as Template", sizeable = False)
+        
+        self.saveTemplateUIElements["topLevelColumn"] = pm.columnLayout(adjustableColumn = True, columnAlign = "center", rowSpacing = 3, parent = self.saveTemplateUIElements["window"])
+        self.saveTemplateUIElements["templateName_rowColumn"] = pm.rowColumnLayout(numberOfColumns = 2, columnAttach = (1, 'right', 0), columnWidth = [(1, 90), (2, windowWidth - 100)], parent = self.saveTemplateUIElements["topLevelColumn"])
+        
+        pm.text(label = "Template Name: ", parent = self.saveTemplateUIElements["templateName_rowColumn"])
+        self.saveTemplateUIElements["templateName"] = pm.textField(text = '([a-z][A-Z][0-9] and _ only)', parent = self.saveTemplateUIElements["templateName_rowColumn"])
+        
+        pm.text(label = "Title: ", parent = self.saveTemplateUIElements["templateName_rowColumn"])
+        self.saveTemplateUIElements["templateTitle"] = pm.textField(text = 'Title', parent = self.saveTemplateUIElements["templateName_rowColumn"])
+    
+        pm.text(label = "Description: ", parent = self.saveTemplateUIElements["templateName_rowColumn"])
+        self.saveTemplateUIElements["templateDescription"] = pm.textField(text = 'Description', parent = self.saveTemplateUIElements["templateName_rowColumn"])
+        
+        pm.text(label = "Icon: ", parent = self.saveTemplateUIElements["templateName_rowColumn"])
+        self.saveTemplateUIElements["templateIcon"] = pm.textField(text = '[programRoot]/Icons/_icon.xpm', parent = self.saveTemplateUIElements["templateName_rowColumn"])
+        
+        
+        pm.separator(style = "in", parent = self.saveTemplateUIElements["topLevelColumn"])
+        
+        columnWidth = (windowWidth / 2) - 5
+        self.saveTemplateUIElements["button_row"] = pm.rowLayout(numberOfColumns = 2, columnWidth = [(1, columnWidth), (2, columnWidth)], columnAttach = [(1, "both", 10), (2, "both", 10)], columnAlign = [(1, "center"), (2, "center")], parent = self.saveTemplateUIElements["topLevelColumn"])
+        
+        pm.button(label = "Accept", command = self.SaveCurrentAsTemplate_AcceptWindow, parent = self.saveTemplateUIElements["button_row"])
+        pm.button(label = "Cancel", command = self.SaveCurrentAsTemplate_CancelWindow, parent = self.saveTemplateUIElements["button_row"])
+        
+        pm.showWindow(self.saveTemplateUIElements["window"])
+    
+    
+    def SaveCurrentAsTemplate_CancelWindow(self, *args):
+        pm.deleteUI(self.saveTemplateUIElements["window"])
+    
+    
+    def SaveCurrentAsTemplate_AcceptWindow(self, *args):
+        templateName = pm.textField(self.saveTemplateUIElements["templateName"], query = True, text = True)
+        
+        programRoot = os.environ["RIGGING_TOOL_ROOT"]
+        templateFileName = "%s/Templates/%s.ma" %(programRoot, templateName)
+        
+        if os.path.exists(templateFileName):
+            pm.confirmDialog(title = "Save Current as Template", message = "Template already exists with that name. Aborting save.", button = ["Accept"], defaultButton = "Accept")
+            return
+        
+        if pm.objExists("Group_container"):
+            pm.select("Group_container", replace = True)
+        else:
+            pm.select(clear = True)
+        
+        pm.namespace(setNamespace = ":")
+        namespaces = pm.namespaceInfo(listOnlyNamespaces = True)
+        
+        for n in namespaces:
+            if n.find("__") != -1:
+                pm.select("%s:module_container" %n, add = True)
+        
+        pm.exportSelected(templateFileName, type = "mayaAscii")
+        pm.select(clear = True)
+        
+        title = pm.textField(self.saveTemplateUIElements["templateTitle"], query = True, text = True)
+        description = pm.textField(self.saveTemplateUIElements["templateDescription"], query = True, text = True)
+        icon = pm.textField(self.saveTemplateUIElements["templateIcon"], query = True, text = True)
+        
+        
+        if icon.find("[programRoot]") != -1:
+            icon = "%s%s" %(programRoot, icon.partition("[programRoot]")[2])
+        
+        
+        templateDescriptionFileName = "%s/Templates/%s.txt" %(programRoot, templateName)
+        with open(templateDescriptionFileName, 'w') as file:
+            
+            file.write("%s\n" %title)
+            file.write("%s\n" %description)
+            file.write("%s\n" %icon)
+        
+        
+        self.CreateTemplateInstallButton(templateFileName)
+        pm.showWindow(self.UIElements["window"])
+        
+        pm.deleteUI(self.saveTemplateUIElements["window"])
+    
+    
+    
+    def InstallTemplate(self, _templateAndPath, *args):
+        pm.importFile(_templateAndPath, namespace = "TEMPLATE_1")
+        
+        self.ResolveNamespaceClashes("TEMPLATE_1")
+        
+        groupContainer = "TEMPLATE_1:group_container"
+        if pm.objExists(groupContainer):
+            self.ResolveGroupNameClashes("TEMPLATE_1")
+            
+            pm.lockNode(groupContainer, lock = False, lockUnpublished = False)
+            
+            oldGroupContainer = "Group_container"
+            if pm.objExists(oldGroupContainer):
+                pm.lockNode(oldGroupContainer, lock = False, lockUnpublished = False)
+                
+                nodeList = pm.containe(groupContainer, query = True, nodeList = True)
+                utils.AddNodeToContainer(oldGroupContainer, nodeList, _force = True)
+                
+                pm.delete(groupContainer)
+            else:
+                pm.rename(groupContainer, oldGroupContainer)
+            
+            pm.lockNode("Group_container", lock = True, lockUnpublished = True)
+        
+        # Clean up temporary namespace
+        pm.namespace(setNamespace = ":")
+        pm.namespace(moveNamespace = ("TEMPLATE_1", ":"), force = True)
+        pm.namespace(removeNamespace = "TEMPLATE_1")
+    
+    
+    def ResolveNamespaceClashes(self, _tempNamespace):
+        returnNames = []
+        
+        pm.namespace(setNamespace = _tempNamespace)
+        namespaces = pm.namespaceInfo(listOnlyNamespaces = True)
+        
+        pm.namespace(setNamespace = ":")
+        existingNamespaces = pm.namespaceInfo(listOnlyNamespaces = True)
+        
+        
+        for i in range(len(namespaces)):
+            namespaces[i] = namespaces[i].partition("%s:" %_tempNamespace)[2]
+        
+        for name in namespaces:
+            newName = str(name)
+            oldName = "%s:%s" %(_tempNamespace, name)
+            
+            if name in existingNamespaces:
+                highestSuffix = utils.FindHighestTrailingNumber(existingNamespaces, "%s_" %name)
+                highestSuffix += 1
+                
+                newName = "%s_%d" %(name, highestSuffix)
+            
+            returnNames.append([oldName, newName])
+        
+        
+        self.ResolveNameChangeMirrorLinks(returnNames, _tempNamespace)
+        
+        
+        self.RenameNamespaces(returnNames)
+        
+        return returnNames
+    
+    def ResolveGroupNameClashes(self, _tempNamespace):
+        pm.namespace(setNamespace = _tempNamespace)
+        dependancyNodes = pm.namespaceInfo(listOnlyDependancyNodes = True)
+    
+        pm.namespace(setNamespace = ":")
+    
+        transforms = pm.ls(dependancyNodes, transforms = True)
+    
+        groups = []
+        for node in transforms:
+            if node.find("%s:Group__"% _tempNamespace) == 0:
+                groups.append(node)
+    
+        if len(groups) == 0:
+            return groups
+    
+        groupNames = []
+        for group in groups:
+            groupName = group.partition("%s:" %_tempNamespace)[2]
+            newGroupName = str(groupName)
+    
+            if pm.objExists(newGroupName):
+                existingGroups = pm.ls("Group__*", transforms = True)
+    
+                highestSuffix = utils.FindHighestTrailingNumber(existingGroups, "%s_" %groupName)
+                highestSuffix += 1
+    
+                newGroupName = "%s_%d" %(groupName, highestSuffix)
+    
+            groupNames.append([group, newGroupName])
+    
+    
+        self.ResolveNameChangeMirrorLinks(groupNames, _tempNamespace)
+    
+        groupContainer = "%s:Group_container" %_tempNamespace
+        if pm.objExists(groupContainer):
+            pm.lockNode(groupContainer, lock = False, lockUnpublished = False)
+    
+        for name in groupNames:
+            pm.rename(name[0], name[1])
+    
+        if pm.objExists(groupContainer):
+            pm.lockNode(groupContainer, lock = True, lockUnpublished = True)
+    
+    
+        return groupNames
+    
+    
+    
+    def RenameNamespaces(self, _names):
+        
+        for name in _names:
+            oldName = name[0]
+            newName = name[1]
+            
+            pm.namespace(setNamespace = ":")
+            pm.namespace(add = newName)
+            pm.namespace(moveNamespace = [oldName, newName])
+            pm.namespace(removeNamespace = oldName)
+    
+    
+    def ResolveNameChangeMirrorLinks(self, _names, _tempNamespace):
+        
+        moduleNamespaces = False
+        firstOldNode = _names[0][0]
+        
+        if utils.StripLeadingNamespace(firstOldNode)[1].find("Group__") == -1:
+            moduleNamespaces = True
+        
+        for n in _names:
+            oldNode = n[0]
+            
+            if moduleNamespaces:
+                oldNode += ":module_grp"
+            
+            if pm.attributeQuery("mirrorLinks", node = oldNode, exists = True):
+                mirrorLink = pm.getAttr("%s.mirrorLinks" %oldNode)
+                mirrorLinkInfo = mirrorLink.rpartition("__")
+
+                mirrorNode = mirrorLinkInfo[0]
+                mirrorAxis = mirrorLinkInfo[2]
+                
+                found = False
+                container = ""
+                
+                if moduleNamespaces:
+                    oldNodeNamespace = n[0]
+                    container = "%s:module_container" %oldNodeNamespace
+                else:
+                    container = "%s:Group_container" %_tempNamespace
+                
+                for nm in _names:
+                    oldLink = nm[0].partition("%s:" %_tempNamespace)[2]
+                    
+                    if oldLink == mirrorNode:
+                        newLink = nm[1]
+                        
+                        if pm.objExists(container):
+                            pm.lockNode(container, lock = False, lockUnpublished = False)
+                        
+                        pm.setAttr("%s.mirrorLinks" %oldNode, "%s__%s" %(newLink, mirrorAxis), type = "string")
+                        
+                        if pm.objExists(container):
+                            pm.lockNode(container, lock = True, lockUnpublished = True)
+                        
+                        found = True
+                        break
+                
+                if not found:
+                    if pm.objExists(container):
+                        pm.lockNode(container, lock = False, lockUnpublished = False)
+                    
+                    pm.deleteAttr(oldNode, attribute = "mirrorLinks")
+                    
+                    if pm.objExists(container):
+                        pm.lockNode(container, lock = True, lockUnpublished = True)

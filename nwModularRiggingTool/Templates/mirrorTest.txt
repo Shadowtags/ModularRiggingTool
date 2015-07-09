@@ -1,0 +1,3 @@
+mirrorTest
+mirror test
+C:\modRigTool\ModularRiggingTool\nwModularRiggingTool/Icons/_icon.xpm

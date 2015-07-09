@@ -406,3 +406,8 @@ def FindJointChain(_rootJoint):
             parent = child
     
     return joints
+
+
+
+def FindAllMayaFiles(_relativeDirectory):
+    return FindAllFiles(_relativeDirectory, ".ma")

@@ -1,0 +1,3 @@
+group_test
+Description
+C:\modRigTool\ModularRiggingTool\nwModularRiggingTool/Icons/_icon.xpm

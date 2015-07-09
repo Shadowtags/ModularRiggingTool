@@ -1,0 +1,3 @@
+Finger
+Description
+C:\modRigTool\ModularRiggingTool\nwModularRiggingTool/Icons/_finger.xpm
