@@ -133,7 +133,7 @@ class Blueprint_UI:
         self.UIElements["mirrorModuleBtn"] = pm.button(enable = False, label = "Mirror Module", command = self.MirrorModule, parent = self.UIElements["moduleButtons_rowColumns"])
         
         # Third row of buttons
-        pm.text(label = '', parent = self.UIElements["moduleButtons_rowColumns"])
+        self.UIElements["duplicateModuleBtn"] = pm.button(enable = True, label = "Duplicate Module", command = self.DuplicateModule, parent = self.UIElements["moduleButtons_rowColumns"])
         self.UIElements["deleteModuleBtn"] = pm.button(enable = False, label = "Delete Module", command = self.DeleteModule, parent = self.UIElements["moduleButtons_rowColumns"])
         self.UIElements["symmetryMoveCheckBox"] = pm.checkBox(enable = True, label = "Symmetry Move", onCommand = self.SetupSymmetryMoveExpressions_CheckBox, offCommand = self.DeleteSymmetryMoveExpressions, parent = self.UIElements["moduleButtons_rowColumns"])
         
@@ -336,7 +336,7 @@ class Blueprint_UI:
         if len(selectedNodes) <= 1:
             self.moduleInstance = None
             selectedModuleNamespace = None
-            currentModule = None
+            currentModuleFile = None
             
             pm.button(self.UIElements["ungroupBtn"], edit = True, enable = False)
             pm.button(self.UIElements["mirrorModuleBtn"], edit = True, enable = False)
@@ -344,6 +344,7 @@ class Blueprint_UI:
             if len(selectedNodes) == 1:
                 lastSelected = selectedNodes[0]
                 
+                # Enable ungroup button if selected node is a group node
                 if lastSelected.find("Group__") == 0:
                     pm.button(self.UIElements["ungroupBtn"], edit = True, enable = True)
                     pm.button(self.UIElements["mirrorModuleBtn"], edit = True, enable = True, label = "Mirror Group")
@@ -886,13 +887,14 @@ class Blueprint_UI:
         
         return returnNames
     
+    
     def ResolveGroupNameClashes(self, _tempNamespace):
         pm.namespace(setNamespace = _tempNamespace)
-        dependancyNodes = pm.namespaceInfo(listOnlyDependancyNodes = True)
+        dependencyNodes = pm.namespaceInfo(listOnlyDependencyNodes = True)
     
         pm.namespace(setNamespace = ":")
     
-        transforms = pm.ls(dependancyNodes, transforms = True)
+        transforms = pm.ls(dependencyNodes, transforms = True)
     
         groups = []
         for node in transforms:
@@ -1002,3 +1004,142 @@ class Blueprint_UI:
                     
                     if pm.objExists(container):
                         pm.lockNode(container, lock = True, lockUnpublished = True)
+    
+    
+    def DuplicateModule(self, *args):
+        
+        modules = set([])
+        groups = set([])
+        
+        selection = pm.ls(selection = True, transforms = True)
+        
+        if len(selection) == 0:
+            return
+        
+        for node in selection:
+            selectionNamespaceInfo = utils.StripLeadingNamespace(node)
+            
+            if selectionNamespaceInfo != None:
+                if selectionNamespaceInfo[0].find("__") != -1:
+                    modules.add(selectionNamespaceInfo[0])
+            
+            else:
+                if node.find("Group__") == 0:
+                    groups.add(node)
+        
+        
+        for group in groups:
+            moduleInfo = self.DuplicateModule_processGroup(group)
+            
+            for module in moduleInfo:
+                modules.add(module)
+        
+        
+        if len(groups) > 0:
+            groupSelection = list(groups)
+            pm.select(groupSelection, replace = True)
+        
+        else:
+            pm.select(clear = True)
+        
+        
+        for module in modules:
+            pm.select("%s:module_container" %module, add = True)
+        
+        
+        if len(groups) > 0:
+            pm.lockNode("Group_container", lock = False, lockUnpublished = True)
+        
+        elif len(modules) == 0:
+            return
+        
+        
+        duplicateFileName = "%s/__duplicateCache.ma" %os.environ["RIGGING_TOOL_ROOT"]
+        pm.exportSelected(duplicateFileName, type = "mayaAscii", force = True)
+        
+        if len(groups) > 0:
+            pm.lockNode("Group_container", lock = True, lockUnpublished = True)
+        
+        
+        self.InstallDuplicate(duplicateFileName, selection)
+        
+        pm.setToolTo("moveSuperContext")
+    
+    
+    def InstallDuplicate(self, _duplicatePath, _selection, *args):
+        pm.importFile(_duplicatePath, namespace = "TEMPLATE_1")
+        
+        moduleNames = self.ResolveNamespaceClashes("TEMPLATE_1")
+        groupNames = self.ResolveGroupNameClashes("TEMPLATE_1")
+        
+        groups = []
+        for name in groupNames:
+            groups.append(name[1])
+        
+        if len(groups) > 0:
+            sceneGroupContainer = "Group_container"
+            pm.lockNode(sceneGroupContainer, lock = False, lockUnpublished = False)
+            
+            utils.AddNodeToContainer(sceneGroupContainer, groups, _includeShapes = True, _force = True)
+            
+            for group in groups:
+                groupNiceName = group.partition("__")[2]
+                pm.container(sceneGroupContainer, edit = True, publishAndBind = ["%s.translate" %group, "%s_t" %groupNiceName])
+                pm.container(sceneGroupContainer, edit = True, publishAndBind = ["%s.rotate" %group, "%s_r" %groupNiceName])
+                pm.container(sceneGroupContainer, edit = True, publishAndBind = ["%s.globalScale" %group, "%s_globalScale" %groupNiceName])
+            
+            pm.lockNode(sceneGroupContainer, lock = True, lockUnpublished = True)
+        
+        pm.namespace(setNamespace = ":")
+        
+        pm.namespace(moveNamespace = ("TEMPLATE_1", ":"), force = True)
+        pm.namespace(removeNamespace = "TEMPLATE_1")
+        
+        newSelection = []
+        for node in _selection:
+            found = False
+            
+            for group in groupNames:
+                oldName = group[0].partition("TEMPLATE_1:")[2]
+                newName = group[1]
+                
+                if node == oldName:
+                    newSelection.append(newName)
+                    found = True
+                    break
+            
+            if not found:
+                nodeNamespaceInfo = utils.StripLeadingNamespace(node)
+                
+                if nodeNamespaceInfo != None:
+                    nodeNamespace = nodeNamespaceInfo[0]
+                    nodeName = nodeNamespaceInfo[1]
+                    
+                    searchName = "TEMPLATE_1:%s" %nodeNamespace
+                    
+                    for module in moduleNames:
+                        if module[0] == searchName:
+                            newSelection.append("%s:%s" %(module[1], nodeName))
+        
+        if len(newSelection) > 0:
+            pm.select(newSelection, replace = True)
+    
+    
+    
+    def DuplicateModule_processGroup(self, _group):
+        
+        returnModules = []
+        
+        children = pm.listRelatives(_group, children = True, type = "transform")
+        
+        for c in children:
+            selectionNamespaceInfo = utils.StripLeadingNamespace(c)
+            
+            if selectionNamespaceInfo != None:
+                returnModules.append(selectionNamespaceInfo[0])
+            
+            else:
+                if c.find("Group__") == 0:
+                    returnModules.extend(self.DuplicateModule_processGroup(c))
+        
+        return returnModules

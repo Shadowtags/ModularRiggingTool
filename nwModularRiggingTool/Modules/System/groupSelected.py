@@ -259,6 +259,7 @@ class UngroupSelected:
             modules.extend(self.FindChildModules(group))
         
         
+        
         # Store all the grouped container nodes in a list
         moduleContainers = [groupContainer]
         for module in modules:
@@ -269,8 +270,7 @@ class UngroupSelected:
         # Unlock containers
         for container in moduleContainers:
             pm.lockNode(container, lock = False, lockUnpublished = False)
-        
-        
+
         # Ungroup
         for group in filteredGroups:
             childCount = len(pm.listRelatives(group, children = True))
@@ -286,7 +286,7 @@ class UngroupSelected:
             pm.delete(group)
             
             # Recursively delete empty parent groups
-            if parentGroup != []:
+            if len(parentGroup) != 0:
                 parentGroup = parentGroup[0]
                 children = pm.listRelatives(parentGroup, children = True)
                 children = pm.ls(children, transforms = True)
@@ -294,11 +294,6 @@ class UngroupSelected:
                 if len(children) == 0:
                     pm.select(parentGroup, replace = True)
                     UngroupSelected()
-        
-        
-        # delete group container
-        if pm.objExists(groupContainer):
-            pm.delete(groupContainer)
         
         # Lock module containers after ungrouping is finished
         for container in moduleContainers:
