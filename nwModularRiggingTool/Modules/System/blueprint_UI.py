@@ -48,24 +48,26 @@ class Blueprint_UI:
         
         self.InitializeModuleTab(tabWidth, tabHeight)
         
-        
         # Template tab
         self.InitializeTemplatesTab(tabHeight, tabWidth)
         
         
+        scenePublished = pm.objExists("Scene_Published")
+        sceneUnlocked = not pm.objExists("Scene_Locked") and not scenePublished
         
-        pm.tabLayout(self.UIElements["tabs"], edit = True, tabLabelIndex = ([1, 'Modules'], [2, 'Templates']) )
+        
+        pm.tabLayout(self.UIElements["tabs"], edit = True, tabLabelIndex = ([1, 'Modules'], [2, 'Templates']), enable = sceneUnlocked )
         
         
         self.UIElements["lockPublishColumn"] = pm.columnLayout(adjustableColumn = True, columnAlign = 'center', rowSpacing = 3, parent = self.UIElements["topLevelColumn"])
         
         pm.separator(style = 'in', parent = self.UIElements["lockPublishColumn"])
         
-        self.UIElements["lockBtn"] = pm.button(label = 'Lock', command = self.Lock, parent = self.UIElements["lockPublishColumn"])
+        self.UIElements["lockBtn"] = pm.button(label = 'Lock', enable = sceneUnlocked, command = self.Lock, parent = self.UIElements["lockPublishColumn"])
         
         pm.separator(style = 'in', parent = self.UIElements["lockPublishColumn"])
         
-        self.UIElements["publishBtn"] = pm.button(label = "Publish", parent = self.UIElements["lockPublishColumn"])
+        self.UIElements["publishBtn"] = pm.button(label = "Publish", enable = not sceneUnlocked and not scenePublished, parent = self.UIElements["lockPublishColumn"])
         
         
         
@@ -256,7 +258,24 @@ class Blueprint_UI:
         pm.setToolTo("moveSuperContext")
     
     
+    def IsRootTransformInstalled(self):
+        pm.namespace(setNamespace = ":")
+        namespaces = pm.namespaceInfo(listOnlyNamespaces = True)
+        
+        for namespace in namespaces:
+            if namespace.find("RootTransform__") == 0:
+                return True
+        
+        return False
+    
     def Lock(self, *args):
+        
+        if not self.IsRootTransformInstalled():
+            result = pm.confirmDialog(messageAlign = "center", title = "Lock Character", message = "We have detected that you don't have a root transform (global transform). \nWould you like to go back and edit your blueprint setup? \n\n(It is recommended that all rigs have at least one global control module).", button = ["Yes", "No"], defaultButton = "Yes", dismissString = "Yes")
+            
+            if result == "Yes":
+                return
+        
         
         # Give user warning that locking is permanent
         result = pm.confirmDialog(messageAlign = 'center', title = 'Lock Blueprint', button = ['Accept', 'Cancel'], defaultButton = 'Accept', cancelButton = 'Cancel', dismissString = 'Cancel', message = "The action of locking a character will convert the current blueprint modules to joints. \nThis action cannot be undone. \nModifications to the blueprint system cannot be made after this point. \n\nDo you wish to continue?")
@@ -322,6 +341,20 @@ class Blueprint_UI:
         for module in moduleInstances:
             hookObject = module[1][4]
             module[0].Lock_phase3(hookObject)
+        
+        
+        # Scene completely locked
+        sceneLockedLocator = pm.spaceLocator(name = "Scene_Locked")
+        pm.setAttr("%s.visibility" %sceneLockedLocator, 0)
+        pm.lockNode(sceneLockedLocator, lock = True, lockUnpublished = True)
+        
+        # Force update scene
+        pm.select(clear = True)
+        self.ModifySelected()
+        
+        pm.tabLayout(self.UIElements["tabs"], edit = True, enable = False)
+        pm.button(self.UIElements["lockBtn"], edit = True, enable = False)
+        pm.button(self.UIElements["publishBtn"], edit = True, enable = True)
     
     
     def ModifySelected(self, *args):
