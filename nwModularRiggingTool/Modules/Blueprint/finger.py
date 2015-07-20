@@ -93,6 +93,7 @@ class Finger(blueprint.Blueprint):
 		cleanParent = "%s:joints_grp" %self.moduleNamespace
 		
 		for joint in joints:
+			
 			jointPositions.append(pm.xform(joint, query = True, worldSpace = True, translation = True))
 			jointRotationOrders.append(pm.getAttr("%s.rotateOrder" %joint))
 			

@@ -270,6 +270,7 @@ class Blueprint_UI:
     
     def Lock(self, *args):
         
+        # Recommend creation of root transform if not already implemented
         if not self.IsRootTransformInstalled():
             result = pm.confirmDialog(messageAlign = "center", title = "Lock Character", message = "We have detected that you don't have a root transform (global transform). \nWould you like to go back and edit your blueprint setup? \n\n(It is recommended that all rigs have at least one global control module).", button = ["Yes", "No"], defaultButton = "Yes", dismissString = "Yes")
             
@@ -283,9 +284,9 @@ class Blueprint_UI:
         if result != 'Accept':
             return
         
+        # Clear scene of script jobs
         self.DeleteSymmetryMoveExpressions()
         pm.checkBox(self.UIElements["symmetryMoveCheckBox"], edit = True, value = False)
-        
         self.DeleteScriptJob()
         
         
@@ -314,6 +315,7 @@ class Blueprint_UI:
                     moduleInfo.append([validModules[index], userSpecifiedName])
         
         
+        # Abort locking if no blueprints available
         if len(moduleInfo) == 0:
             pm.confirmDialog(messageAlign = 'center', title = 'Lock Blueprints', message = "There appear to be no blueprint \ninstances in the current scene. \n\nAborting lock.", button = ["Accept"], defaultButton = "Accept")
             return
@@ -359,85 +361,89 @@ class Blueprint_UI:
     
     def ModifySelected(self, *args):
         
-        if pm.checkBox(self.UIElements["symmetryMoveCheckBox"], query = True, value = True):
-            self.DeleteSymmetryMoveExpressions()
-            self.SetupSymmetryMoveExpressions()
-        
-        
-        selectedNodes = pm.ls(selection = True)
-        
-        if len(selectedNodes) <= 1:
-            self.moduleInstance = None
-            selectedModuleNamespace = None
-            currentModuleFile = None
+        # Only proceed if the scene haven't been locked down
+        if not pm.objExists("Scene_Locked"):
             
-            pm.button(self.UIElements["ungroupBtn"], edit = True, enable = False)
-            pm.button(self.UIElements["mirrorModuleBtn"], edit = True, enable = False)
+            if pm.checkBox(self.UIElements["symmetryMoveCheckBox"], query = True, value = True):
+                self.DeleteSymmetryMoveExpressions()
+                self.SetupSymmetryMoveExpressions()
             
-            if len(selectedNodes) == 1:
-                lastSelected = selectedNodes[0]
+            
+            selectedNodes = pm.ls(selection = True)
+            
+            if len(selectedNodes) <= 1:
+                self.moduleInstance = None
+                selectedModuleNamespace = None
+                currentModuleFile = None
                 
-                # Enable ungroup button if selected node is a group node
-                if lastSelected.find("Group__") == 0:
-                    pm.button(self.UIElements["ungroupBtn"], edit = True, enable = True)
-                    pm.button(self.UIElements["mirrorModuleBtn"], edit = True, enable = True, label = "Mirror Group")
+                pm.button(self.UIElements["ungroupBtn"], edit = True, enable = False)
+                pm.button(self.UIElements["mirrorModuleBtn"], edit = True, enable = False)
                 
-                namespaceAndNode = utils.StripLeadingNamespace(lastSelected)
-                
-                if namespaceAndNode != None:
-                    namespace = namespaceAndNode[0]
+                if len(selectedNodes) == 1:
+                    lastSelected = selectedNodes[0]
                     
-                    moduleNameInfo = utils.FindAllModuleNames("/Modules/Blueprint")
-                    validModules = moduleNameInfo[0]
-                    validModuleNames = moduleNameInfo[1]
+                    # Enable ungroup button if selected node is a group node
+                    if lastSelected.find("Group__") == 0:
+                        pm.button(self.UIElements["ungroupBtn"], edit = True, enable = True)
+                        pm.button(self.UIElements["mirrorModuleBtn"], edit = True, enable = True, label = "Mirror Group")
                     
-                    index = 0
-                    for moduleName in validModuleNames:
-                        moduleNameIncSuffix = "%s__" %moduleName
+                    namespaceAndNode = utils.StripLeadingNamespace(lastSelected)
+                    
+                    if namespaceAndNode != None:
+                        namespace = namespaceAndNode[0]
                         
-                        if namespace.find(moduleNameIncSuffix) == 0:
-                            currentModuleFile = validModules[index]
-                            selectedModuleNamespace = namespace
-                            break
+                        moduleNameInfo = utils.FindAllModuleNames("/Modules/Blueprint")
+                        validModules = moduleNameInfo[0]
+                        validModuleNames = moduleNameInfo[1]
                         
-                        index += 1
-        
-            controlEnable = False
-            userSpecifiedName = ''
-            constrainCommand = self.ConstrainRootToHook
-            constrainLabel = "Constrain Root > Hook"
+                        index = 0
+                        for moduleName in validModuleNames:
+                            moduleNameIncSuffix = "%s__" %moduleName
+                            
+                            if namespace.find(moduleNameIncSuffix) == 0:
+                                currentModuleFile = validModules[index]
+                                selectedModuleNamespace = namespace
+                                break
+                            
+                            index += 1
             
-            if selectedModuleNamespace != None:
-                controlEnable = True
-                userSpecifiedName = selectedModuleNamespace.partition('__')[2]
+                controlEnable = False
+                userSpecifiedName = ''
+                constrainCommand = self.ConstrainRootToHook
+                constrainLabel = "Constrain Root > Hook"
                 
-                mod = __import__("Blueprint.%s" %currentModuleFile, {}, {}, [currentModuleFile])
-                reload(mod)
+                if selectedModuleNamespace != None:
+                    controlEnable = True
+                    userSpecifiedName = selectedModuleNamespace.partition('__')[2]
+                    
+                    
+                    mod = __import__("Blueprint.%s" %currentModuleFile, {}, {}, [currentModuleFile])
+                    reload(mod)
+                    
+                    moduleClass = getattr(mod, mod.CLASS_NAME)
+                    self.moduleInstance = moduleClass(userSpecifiedName, None)
+                    
+                    
+                    pm.button(self.UIElements["mirrorModuleBtn"], edit = True, enable = True, label = "Mirror Module")
+                    
+                    if self.moduleInstance.IsRootConstrained():
+                        constrainCommand = self.UnconstrainRootFromHook
+                        constrainLabel = "Unconstrain Root"
                 
-                moduleClass = getattr(mod, mod.CLASS_NAME)
-                self.moduleInstance = moduleClass(userSpecifiedName, None)
+                
+                pm.button(self.UIElements["rehookBtn"], edit = True, enable = controlEnable)
+                pm.button(self.UIElements["snapRootBtn"], edit = True, enable = controlEnable)
+                pm.button(self.UIElements["constrainBtn"], edit = True, enable = controlEnable, label = constrainLabel, command = constrainCommand)
+                
+                pm.button(self.UIElements["deleteModuleBtn"], edit = True, enable = controlEnable, command = self.DeleteModule)
+                
+                pm.textField(self.UIElements["moduleName"], edit = True, enable = controlEnable, text = userSpecifiedName)
                 
                 
-                pm.button(self.UIElements["mirrorModuleBtn"], edit = True, enable = True, label = "Mirror Module")
-                
-                if self.moduleInstance.IsRootConstrained():
-                    constrainCommand = self.UnconstrainRootFromHook
-                    constrainLabel = "Unconstrain Root"
+                self.CreateModuleSpecificControls()
             
             
-            pm.button(self.UIElements["rehookBtn"], edit = True, enable = controlEnable)
-            pm.button(self.UIElements["snapRootBtn"], edit = True, enable = controlEnable)
-            pm.button(self.UIElements["constrainBtn"], edit = True, enable = controlEnable, label = constrainLabel, command = constrainCommand)
-            
-            pm.button(self.UIElements["deleteModuleBtn"], edit = True, enable = controlEnable, command = self.DeleteModule)
-            
-            pm.textField(self.UIElements["moduleName"], edit = True, enable = controlEnable, text = userSpecifiedName)
-            
-            
-            self.CreateModuleSpecificControls()
-        
-        
-        self.CreateScriptJob()
+            self.CreateScriptJob()
     
     
     

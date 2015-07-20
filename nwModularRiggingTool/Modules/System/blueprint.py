@@ -111,6 +111,7 @@ class Blueprint():
             pm.container(self.containerName, edit = True, publishAndBind = ["%s.rotate" %jointName_full, "%s_R" %jointName])
             pm.container(self.containerName, edit = True, publishAndBind = ["%s.rotateOrder" %jointName_full, "%s_RotateOrder" %jointName])
             
+            
             # Reorient child joints
             if index > 0:
                 pm.joint(parentJoint, edit = True, orientJoint = 'xyz', secondaryAxisOrient = 'yup')
@@ -408,12 +409,11 @@ class Blueprint():
     
     def GetJoints(self):
         
-        jointBaseName = "%s:" %self.moduleNamespace
+        jointBasename = "%s:" %self.moduleNamespace
         joints = []
         
         for jointInf in self.jointInfo:
-            joints.append("%s%s" %(jointBaseName, jointInf[0]))
-        
+            joints.append("%s%s" %(jointBasename, jointInf[0]))
         
         return joints
     
@@ -455,6 +455,7 @@ class Blueprint():
         jointPosition = _moduleInfo[0]
         numJoints = len(jointPosition)
         
+        
         jointOrientations = _moduleInfo[1]
         orientWithAxis = False
         pureOrientations = False
@@ -462,6 +463,7 @@ class Blueprint():
         if jointOrientations[0] == None:
             orientWithAxis = True
             jointOrientations = jointOrientations[1]
+        
         else:
             pureOrientations = True
             jointOrientations = jointOrientations[0]
@@ -533,6 +535,7 @@ class Blueprint():
             
             newJoints.append(newJoint)
             
+            
             if i < numRotationOrders:
                 pm.setAttr("%s.rotateOrder" %newJoint, int(jointRotationOrders[i]))
             
@@ -566,7 +569,7 @@ class Blueprint():
         i = 0
         for node in creationPoseGrpNodes:
             renameNode = pm.rename(node, "%s:creationPose_%s" %(self.moduleNamespace, self.jointInfo[i][0]))
-            pm.setAttr("%s.visibility" %renameNode)
+            pm.setAttr("%s.visibility" %renameNode, 0)
             
             i += 1
         
