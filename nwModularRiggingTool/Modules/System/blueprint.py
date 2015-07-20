@@ -548,7 +548,7 @@ class Blueprint():
         
         
         # Group new joint chain
-        blueprintGrp = pm.group(empty = True, name = "%s:blueprint_points_grp" %self.moduleNamespace)
+        blueprintGrp = pm.group(empty = True, name = "%s:blueprint_joints_grp" %self.moduleNamespace)
         pm.parent(newJoints[0], blueprintGrp, absolute = True)
         
         

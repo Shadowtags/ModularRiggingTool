@@ -67,7 +67,7 @@ class Blueprint_UI:
         
         pm.separator(style = 'in', parent = self.UIElements["lockPublishColumn"])
         
-        self.UIElements["publishBtn"] = pm.button(label = "Publish", enable = not sceneUnlocked and not scenePublished, parent = self.UIElements["lockPublishColumn"])
+        self.UIElements["publishBtn"] = pm.button(label = "Publish", enable = not sceneUnlocked and not scenePublished, command = self.Publish, parent = self.UIElements["lockPublishColumn"])
         
         
         
@@ -1182,3 +1182,151 @@ class Blueprint_UI:
                     returnModules.extend(self.DuplicateModule_processGroup(c))
         
         return returnModules
+    
+    
+    def Publish(self, *args):
+        
+        result = pm.confirmDialog(messageAlign = "center", title = "Publish Character", message = "The action of publishing cannot be undone. \nAre you sure you wish to continue?", button = ["Accept", "Cancel"], defaultButton = "Accept", cancelButton = "Cancel", dismissString = "Cancel")
+        
+        if result != "Accept":
+            return
+        
+        # Name character to be published
+        result = pm.promptDialog(title = "Publish Character", message = "Please specify a character name ([a-z][A-Z][0-9] and _ only)", button = ["Accept", "Cancel"], defaultButton = "Accept", cancelButton = "Cancel", dismissString = "Cancel")
+        if result == "Accept":
+            
+            characterName = pm.promptDialog(query = True, text = True)
+            characterFileName = "%s/Characters/%s.ma" %(os.environ["RIGGING_TOOL_ROOT"], characterName)
+            
+            if os.path.exists(characterFileName):
+                pm.confirmDialog(title = "Publish Character", message = "Character already exists with that name. Aborting publish.", button = ["Accept"], defaultButton = "Accept")
+                return
+            
+            pm.lockNode("Scene_Locked", lock = False, lockUnpublished = False)
+            pm.delete("Scene_Locked")
+            
+            pm.namespace(setNamespace = ":")
+            namespaces = pm.namespaceInfo(listOnlyNamespaces = True)
+            
+            # Collect valid module names
+            moduleNameInfo = utils.FindAllModuleNames("/Modules/Blueprint")
+            validModules = moduleNameInfo[0]
+            validModuleNames = moduleNameInfo[1]
+            
+            # Compare module(s) for validity
+            foundModuleInstances = []
+            for n in namespaces:
+                splitString = n.partition("__")
+                
+                if splitString[1] != '':
+                    module = splitString[0]
+                    
+                    if module in validModuleNames:
+                        foundModuleInstances.append(n)
+            
+            
+            moduleGroups = []
+            moduleContainers = []
+            
+            # Collect module groups and containers
+            for moduleInstance in foundModuleInstances:
+                moduleGroups.append("%s:module_grp" %moduleInstance)
+                moduleContainers.append("%s:module_container" %moduleInstance)
+            
+            # Unlock containers
+            for container in moduleContainers:
+                pm.lockNode(container, lock = False, lockUnpublished = False)
+            
+            # Group modules together as a character
+            characterGroup = pm.group(empty = True, name = "character_grp")
+            for group in moduleGroups:
+                pm.parent(group, characterGroup, absolute = True)
+            
+            
+            pm.select(characterGroup, replace = True)
+            pm.addAttr(attributeType = "bool", defaultValue = 0, keyable = False, longName = "moduleMaintenanceVisibility")
+            pm.addAttr(attributeType = "bool", defaultValue = 1, keyable = True, longName = "animationControlVisibility")
+            
+            invertModuleMaintenanceVisibility = pm.shadingNode("reverse", name = "reverse_moduleMaintenanceVisibility", asUtility = True)
+            pm.connectAttr("%s.moduleMaintenanceVisibility" %characterGroup, "%s.inputX" %invertModuleMaintenanceVisibility, force = True)
+            
+            moduleVisibilityMultiply = pm.shadingNode("multiplyDivide", name = "moduleVisibilityMultiply", asUtility = True)
+            pm.connectAttr("%s.outputX" %invertModuleMaintenanceVisibility, "%s.input1X" %moduleVisibilityMultiply)
+            pm.connectAttr("%s.animationControlVisibility" %characterGroup, "%s.input2X" %moduleVisibilityMultiply)
+            
+            # Create a list containing all of the character nodes
+            characterNodes = list(moduleContainers)
+            for c in (characterGroup, characterGroup, characterGroup):
+                characterNodes.append(c)
+            
+            # Add list to a character container
+            characterContainer = pm.container(name = "character_container")
+            utils.AddNodeToContainer(characterContainer, characterNodes)
+            
+            pm.container(characterContainer, edit = True, publishAndBind = ["%s.animationControlVisibility" %characterGroup, "animationControlVisibility"])
+            
+            # Publish the module containers attributes to the character container
+            for container in moduleContainers:
+                moduleNamespace = utils.StripLeadingNamespace(container)[0]
+                blueprintJointsGrp = "%s:blueprint_joints_grp" %moduleNamespace
+                
+                pm.connectAttr("%s.moduleMaintenanceVisibility" %characterGroup, "%s.visibility" %blueprintJointsGrp)
+                pm.setAttr("%s.overrideEnabled" %blueprintJointsGrp, 1)
+                
+                publishedNames = pm.container(container, query = True, publishName = True)
+                userSpecifiedName = moduleNamespace.partition("__")[2]
+                
+                for name in publishedNames:
+                    pm.container(characterContainer, edit = True, publishAndBind = ["%s.%s" %(container, name), "%s_%s" %(userSpecifiedName, name)])
+            
+            
+            characterContainers = list(moduleContainers)
+            characterContainers.append(characterContainer)
+            
+            # Select top level transforms in scene
+            pm.select(all = True)
+            topLevelTransforms = pm.ls(selection = True, transforms = True)
+            pm.select(clear = True)
+            
+            topLevelTransforms.remove(characterGroup)
+            
+            # Create visibility attributes and add to character container
+            if len(topLevelTransforms) != 0:
+                nonBlueprintGroup = pm.group(topLevelTransforms, absolute = True, parent = characterGroup, name = "non_blueprint_grp")
+                pm.setAttr("%s.overrideEnabled" %nonBlueprintGroup, 1)
+                pm.setAttr("%s.overrideDisplayType" %nonBlueprintGroup, 2) # Reference display type
+                
+                pm.select(nonBlueprintGroup, replace = True)
+                pm.addAttr(attributeType = "bool", defaultValue = 1, longName = "display", keyable = True)
+                
+                visibilityMultiply = pm.shadingNode("multiplyDivide", name = "non_blueprint_visibilityMultiply", asUtility = True)
+                pm.connectAttr("%s.outputX" %invertModuleMaintenanceVisibility, "%s.input1X" %visibilityMultiply, force = True)
+                pm.connectAttr("%s.display" %nonBlueprintGroup, "%s.input2X" %visibilityMultiply, force = True)
+                pm.connectAttr("%s.outputX" %visibilityMultiply, "%s.visibility" %nonBlueprintGroup, force = True)
+                
+                nonBlueprintContainer = pm.container(addNode = nonBlueprintGroup, includeHierarchyBelow = True, includeNetwork = True, includeShapes = True, name = "non_blueprint_container")
+                utils.AddNodeToContainer(characterContainer, nonBlueprintContainer)
+                characterContainers.append(nonBlueprintContainer)
+                
+                publishedName = "displayNonBlueprintNodes"
+                pm.container(nonBlueprintContainer, edit = True, publishAndBind = ["%s.display" %nonBlueprintGroup, publishedName])
+                pm.container(characterContainer, edit = True, publishAndBind = ["%s.%s" %(nonBlueprintContainer, publishedName), publishedName])
+            
+            # Lock character container
+            for container in characterContainers:
+                pm.lockNode(container, lock = True, lockUnpublished = True)
+            
+            
+            # Export character as a .ma file
+            pm.select(characterContainer, replace = True)
+            pm.exportSelected(characterFileName, type = "mayaAscii")
+            
+            # Create locator to mark scene as published
+            scenePublished = pm.spaceLocator(name = "Scene_Published")
+            pm.setAttr("%s.visibility" %scenePublished, 0)
+            pm.lockNode(scenePublished, lock = True, lockUnpublished = True)
+            
+            
+            pm.select(clear = True)
+            
+            pm.button(self.UIElements["publishBtn"], edit = True, enable = False)
