@@ -11,7 +11,26 @@ class ModuleMaintenance:
 		
 		self.shelfTool_instance = _shelfTool_inst
 		self.UIElements = {}
+		self.controlModuleCompatability = self.InitializeControlModuleCompatability()
 	
+	
+	def InitializeControlModuleCompatability(self):
+		animationControlModules = utils.FindAllModules("/Modules/Animation")
+		
+		moduleList = []
+		for module in animationControlModules:
+			mod = __import__("Animation.%s" %module, {}, {}, [module])
+			reload(mod)
+			
+			moduleClass = getattr(mod, mod.CLASS_NAME)
+			moduleInstance = moduleClass(None)
+			
+			compatabileBlueprintModules = moduleInstance.CompatibleBlueprintModules()
+			
+			moduleList.append( (mod, mod.CLASS_NAME, compatabileBlueprintModules))
+		
+		
+		return moduleList
 	
 	
 	def SetModuleMaintenanceVisibility(self, _visibility = True):
@@ -137,10 +156,19 @@ class ModuleMaintenance:
 		
 		self.UIElements["topRowLayout"] = pm.rowLayout(numberOfColumns = 2, columnWidth2 = (296, 296), columnAttach2 = ("both", "both"), columnOffset2 = (10, 10), rowAttach = ([1, "both", 5], [2, "both", 5]), parent = self.UIElements["window"])
 		
-		self.UIElements["controlModule_textScrollList"] = pm.textScrollList(parent = self.UIElements["topRowLayout"])
+		self.UIElements["controlModule_textScrollList"] = pm.textScrollList(selectCommand = self.UI_controlModuleSelected, parent = self.UIElements["topRowLayout"])
+		
+		# Add compatable control modules to text scroll list
+		for controlModule in self.controlModuleCompatability:
+			if blueprintModuleName in controlModule[2]:
+				
+				# Add control module if it hasn't already been installed
+				if not self.IsModuleInstalled(controlModule[1]):
+					pm.textScrollList(self.UIElements["controlModule_textScrollList"], edit = True, append = controlModule[1])
+		
 		
 		self.UIElements["right_columnLayout"] = pm.columnLayout(adjustableColumn = True, rowSpacing = 3, parent = self.UIElements["topRowLayout"])
-		self.UIElements["nameText"] = pm.text(label = '', parent = self.UIElements["right_columnLayout"])
+		self.UIElements["nameText"] = pm.text(label = 'No Animation Modules to Install', parent = self.UIElements["right_columnLayout"])
 		self.UIElements["descriptionScrollField"] = pm.scrollField(wordWrap = True, height = 110, editable = False, text = '', parent = self.UIElements["right_columnLayout"])
 		
 		pm.separator(style = 'in', parent = self.UIElements["right_columnLayout"])
@@ -149,6 +177,75 @@ class ModuleMaintenance:
 		
 		if pm.textScrollList(self.UIElements["controlModule_textScrollList"], query = True, numberOfItems = True) != 0:
 			pm.textScrollList(self.UIElements["controlModule_textScrollList"], edit = True, selectIndexedItem = 1)
+			self.UI_controlModuleSelected()
 		
 		
 		pm.showWindow(self.UIElements["window"])
+	
+	
+	def IsModuleInstalled(self, _moduleName):
+		pm.namespace(setNamespace = self.currentBlueprintModule)
+		installedModules = pm.namespaceInfo(listOnlyNamespaces = True)
+		pm.namespace(setNamespace = ":")
+		
+		if installedModules != None:
+			for module in installedModules:
+				installedModuleNameWithoutSuffix = utils.StripAllNamespaces(module)[1]
+				installedModuleName = installedModuleNameWithoutSuffix.rpartition("_")[0]
+				
+				if installedModuleName == moduleName:
+					return True
+		
+		return False
+	
+	
+	def UI_controlModuleSelected(self, *args):
+		moduleNameInfo = pm.textScrollList(self.UIElements["controlModule_textScrollList"], query = True, selectItem = True)
+		
+		if len(moduleNameInfo) == 0:
+			pm.text(self.UIElements["nameText"], edit = True, label = 'No Animation Modules to Install')
+			pm.scrollField(self.UIElements["descriptionScrollField"], edit = True, text = '')
+			pm.button(self.UIElements["installButton"], edit = True, enable = False)
+			return
+		
+		else:
+			moduleName = moduleNameInfo[0]
+			
+			mod = None
+			for controlModule in self.controlModuleCompatability:
+				if controlModule[1] == moduleName:
+					mod = controlModule[0]
+			
+			if mod != None:
+				moduleTitle = mod.TITLE
+				moduleDescription = mod.DESCRIPTION
+				
+				pm.text(self.UIElements["nameText"], edit = True, label = moduleTitle)
+				pm.scrollField(self.UIElements["descriptionScrollField"], edit = True, text = moduleDescription)
+				
+				pm.button(self.UIElements["installButton"], edit = True, enable = True, command = partial(self.InstallModule, mod, moduleName))
+	
+	
+	def InstallModule(self, _mod, _moduleName, *args):
+		self.DisableSelectionScriptJob()
+		
+		moduleNamespace = "%s:%s_1" %(self.currentBlueprintModule, _mod.CLASS_NAME)
+		
+		moduleClass = getattr(_mod, _mod.CLASS_NAME)
+		moduleInstance = moduleClass(moduleNamespace)
+		moduleInstance.Install()
+		
+		# Delete installed control module in scroll list and reselect the top one
+		pm.textScrollList(self.UIElements["controlModule_textScrollList"], edit = True, removeItem = _moduleName)
+		
+		if pm.textScrollList(self.UIElements["controlModule_textScrollList"], query = True, numberOfItems = True) != 0:
+			pm.textScrollList(self.UIElements["controlModule_textScrollList"], edit = True, selectIndexedItem = 1)
+		
+		self.UI_controlModuleSelected()
+		
+		utils.ForceSceneUpdate()
+		
+		pm.select("%s:module_container" %self.currentBlueprintModule, replace = True)
+		
+		
+		self.SetupSelectionScriptJob()
