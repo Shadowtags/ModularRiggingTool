@@ -411,3 +411,16 @@ def FindJointChain(_rootJoint):
 
 def FindAllMayaFiles(_relativeDirectory):
     return FindAllFiles(_relativeDirectory, ".ma")
+
+
+def FindInstalledCharacters():
+    pm.namespace(setNamespace = ":")
+    namespaces = pm.namespaceInfo(listOnlyNamespaces = True)
+    
+    characterNamespaces = []
+    
+    for n in namespaces:
+        if n.find("Character__") == 0:
+            characterNamespaces.append(n)
+    
+    return characterNamespaces
