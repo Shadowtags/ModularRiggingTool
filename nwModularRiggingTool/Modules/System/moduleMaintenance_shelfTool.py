@@ -17,11 +17,14 @@ class ModuleMaintenance_shelfTool:
 		if scriptJobNum == None:
 			modMaintenance.SetModuleMaintenanceVisibility(True)
 			
-			scriptJobNum = 10
+			modMaintenance.ObjectSelected()
 		
 		
 		else:
 			modMaintenance.SetModuleMaintenanceVisibility(False)
+			
+			if pm.window("modMaintenance_UI_window", exists = True):
+				pm.deleteUI("modMaintenance_UI_window")
 			
 			if pm.scriptJob(exists = scriptJobNum):
 				pm.scriptJob(kill = scriptJobNum)

@@ -424,3 +424,17 @@ def FindInstalledCharacters():
             characterNamespaces.append(n)
     
     return characterNamespaces
+
+
+def FindInstalledBlueprintInstances(_characterNamespace):
+    
+    pm.namespace(setNamespace = _characterNamespace)
+    moduleInstances = pm.namespaceInfo(listOnlyNamespaces = True)
+    
+    returnModuleInstances = []
+    for module in moduleInstances:
+        returnModuleInstances.append(StripLeadingNamespace(module)[1])
+    
+    pm.namespace(setNamespace = ":")
+    
+    return returnModuleInstances
