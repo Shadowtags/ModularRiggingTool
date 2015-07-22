@@ -77,6 +77,7 @@ class AttachGeoToBlueprint_ShelfTool:
 			self.AttachGeometryToBlueprint_parenting(self.blueprintJoints[0], self.geometry)
 	
 		else:
+			print self.blueprintJoints
 			self.AttachGeometryToBlueprint_skinning(self.blueprintJoints, self.geometry)
 
 	
@@ -84,7 +85,6 @@ class AttachGeoToBlueprint_ShelfTool:
 	def FindBlueprintJoints(self, _selection):
 		
 		selectedBlueprintJoints = []
-		
 		for obj in _selection:
 			
 			if pm.objectType(obj, isType = "joint"):

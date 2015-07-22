@@ -552,7 +552,7 @@ class Blueprint():
         pm.parent(newJoints[0], blueprintGrp, absolute = True)
         
         
-        creationPoseGrpNodes = pm.duplicate(blueprintGrp, name = "%s:creationPose_joint_grp" %self.moduleNamespace, renameChildren = True)
+        creationPoseGrpNodes = pm.duplicate(blueprintGrp, name = "%s:creationPose_joints_grp" %self.moduleNamespace, renameChildren = True)
         creationPoseGrp = creationPoseGrpNodes[0]
         
         
@@ -574,7 +574,7 @@ class Blueprint():
             i += 1
         
         pm.select(blueprintGrp, replace = True)
-        pm.addAttr(attributeType = 'bool', defaultValue = 0, longName = "controlModuleInstalled", keyable = False)
+        pm.addAttr(attributeType = 'bool', defaultValue = 0, longName = "controlModulesInstalled", keyable = False)
         
         
         hookGroup = pm.group(empty = True, name = "%s:HOOK_IN" %self.moduleNamespace)

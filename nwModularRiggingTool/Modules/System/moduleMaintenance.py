@@ -71,7 +71,7 @@ class ModuleMaintenance:
 				blueprintJointsGrp = "%s:%s:blueprint_joints_grp" %(character, blueprintInstance)
 				
 				# Change color of module joints depending on wether animation controls heve been installed or not
-				if pm.getAttr("%s.controlModuleInstalled" %blueprintJointsGrp):
+				if pm.getAttr("%s.controlModulesInstalled" %blueprintJointsGrp):
 					# Blue
 					pm.setAttr("%s.overrideColor" %blueprintJointsGrp, 6)
 				else:
@@ -193,7 +193,7 @@ class ModuleMaintenance:
 				installedModuleNameWithoutSuffix = utils.StripAllNamespaces(module)[1]
 				installedModuleName = installedModuleNameWithoutSuffix.rpartition("_")[0]
 				
-				if installedModuleName == moduleName:
+				if installedModuleName == _moduleName:
 					return True
 		
 		return False

@@ -1256,8 +1256,9 @@ class Blueprint_UI:
             
             # Create a list containing all of the character nodes
             characterNodes = list(moduleContainers)
-            for c in (characterGroup, characterGroup, characterGroup):
-                characterNodes.append(c)
+            characterNodes.append(characterGroup)
+            characterNodes.append(invertModuleMaintenanceVisibility)
+            characterNodes.append(moduleVisibilityMultiply)
             
             # Add list to a character container
             characterContainer = pm.container(name = "character_container")

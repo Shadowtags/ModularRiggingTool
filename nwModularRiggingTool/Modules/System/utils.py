@@ -438,3 +438,18 @@ def FindInstalledBlueprintInstances(_characterNamespace):
     pm.namespace(setNamespace = ":")
     
     return returnModuleInstances
+
+
+def FindFirstFreeConnection(_attribute):
+    
+    found = False
+    index = 0
+    
+    while not found:
+        if pm.connectionInfo("%s[%d]" %(_attribute, index), isDestination = True):
+            index += 1
+        
+        else:
+            found = True
+    
+    return index
