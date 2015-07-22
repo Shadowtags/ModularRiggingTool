@@ -2,6 +2,8 @@ import pymel.core as pm
 import System.utils as utils
 reload(utils)
 
+from functools import partial
+
 
 class ControlModule:
 	

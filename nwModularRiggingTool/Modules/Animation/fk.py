@@ -4,6 +4,9 @@ import System.controlModule as controlModule
 import System.utils as utils
 reload(utils)
 
+import System.controlObject as controlObject
+reload(controlObject)
+
 
 CLASS_NAME = "FK"
 TITLE = "Forward Kinematic"
@@ -39,9 +42,10 @@ class FK(controlModule.ControlModule):
 		containedNodes = []
 		name = "%s_fkControl" %jointName
 		
-		fkControl = pm.sphere(name = "%s_fkControl" %_joint)[0]
-		utils.AddNodeToContainer(_moduleContainer, fkControl, True)
-		self.PublishNameToModuleContainer("%s.rotate" %fkControl, "%s_R" %name, True)
+		controlObjectInstance = controlObject.ControlObject()
+		
+		fkControlInfo = controlObjectInstance.Create(name, "sphere.ma", self, _lod = 1, _translation = False, _rotation = True, _globalScale = False, _spaceSwitching = False)
+		fkControl = fkControlInfo[0]
 		
 		pm.connectAttr("%s.rotateOrder" %_joint, "%s.rotateOrder" %fkControl)
 		
