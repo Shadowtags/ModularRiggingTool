@@ -10,6 +10,7 @@ class Blueprint_UI:
     
     def __init__(self):
         
+        self.directory = '%s/nwModularRiggingTool' %pm.internalVar(userScriptDir = True)
         self.moduleInstance = None
         
         self.DeleteSymmetryMoveExpressions()
@@ -163,6 +164,7 @@ class Blueprint_UI:
         
         for template in utils.FindAllMayaFiles("/Templates"):
             
+            #templateAndPath = "%s/Templates/%s.ma" %(self.directory, template)
             templateAndPath = "%s/Templates/%s.ma" %(os.environ["RIGGING_TOOL_ROOT"], template)
             self.CreateTemplateInstallButton(templateAndPath)
         
@@ -817,6 +819,7 @@ class Blueprint_UI:
     def SaveCurrentAsTemplate_AcceptWindow(self, *args):
         templateName = pm.textField(self.saveTemplateUIElements["templateName"], query = True, text = True)
         
+        #programRoot = self.directory
         programRoot = os.environ["RIGGING_TOOL_ROOT"]
         templateFileName = "%s/Templates/%s.ma" %(programRoot, templateName)
         
@@ -1093,6 +1096,7 @@ class Blueprint_UI:
             return
         
         
+        #duplicateFileName = "%s/__duplicateCache.ma" %self.directory
         duplicateFileName = "%s/__duplicateCache.ma" %os.environ["RIGGING_TOOL_ROOT"]
         pm.exportSelected(duplicateFileName, type = "mayaAscii", force = True)
         
@@ -1196,6 +1200,7 @@ class Blueprint_UI:
         if result == "Accept":
             
             characterName = pm.promptDialog(query = True, text = True)
+            #characterFileName = "%s/Characters/%s.ma" %(self.directory, characterName)
             characterFileName = "%s/Characters/%s.ma" %(os.environ["RIGGING_TOOL_ROOT"], characterName)
             
             if os.path.exists(characterFileName):

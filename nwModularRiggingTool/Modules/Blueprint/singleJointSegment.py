@@ -9,6 +9,7 @@ CLASS_NAME = "SingleJointSegment"
 TITLE = "Single Joint Segment"
 DESCRIPTION = "Creates 2 joints, with control for 1st joint's orientation and rotation order. Ideal use: clavicle bones/shoulder"
 ICON = "%s/Icons/_singleJointSeg.xpm" %os.environ["RIGGING_TOOL_ROOT"]
+#ICON = "%s/nwModularRiggingTool/Icons/_singleJointSeg.xpm" %pm.internalVar(userScriptDir = True)
 
 class SingleJointSegment(blueprint.Blueprint):
 

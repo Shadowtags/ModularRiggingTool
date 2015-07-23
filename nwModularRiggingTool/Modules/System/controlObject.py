@@ -9,6 +9,8 @@ class ControlObject:
 	
 	def __init__(self, _controlObject = None):
 		
+		#self.directory = '%s/nwModularRiggingTool' %pm.internalVar(userScriptDir = True)
+		
 		if _controlObject != None:
 			self.controlObject = _controlObject
 			
@@ -44,6 +46,7 @@ class ControlObject:
 		animationModuleNamespace = "%s:%s" %(blueprintModuleNameSpace, animationModuleName)
 		
 		# import control object
+		#controlObjectFile = "%s/ControlObjects/Animation/%s" %(self.directory, _controlFile)
 		controlObjectFile = "%s/ControlObjects/Animation/%s" %(os.environ["RIGGING_TOOL_ROOT"], _controlFile)
 		pm.importFile(controlObjectFile)
 		

@@ -42,7 +42,7 @@ def FindAllFiles(_relativeDirectory, _fileExtension):
     returnFiles = []
     
     import os
-    
+    #fileDirectory = '%s/nwModularRiggingTool/%s/' %(pm.internalVar(userScriptDir = True), _relativeDirectory)
     fileDirectory = "%s/%s/" %(os.environ["RIGGING_TOOL_ROOT"], _relativeDirectory)
     
     allFiles = os.listdir(fileDirectory)

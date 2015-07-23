@@ -12,6 +12,7 @@ CLASS_NAME = "LegFoot"
 TITLE = "Leg and Foot"
 DESCRIPTION = "Creates 5 joints. The first 3 acting as hip, knee and ankle(a hinge joint setup), the last 2 acting as ball and toe. Ideal use: leg and foot"
 ICON = "%s/Icons/_legFoot.xpm" %os.environ["RIGGING_TOOL_ROOT"]
+#ICON = "%s/nwModularRiggingTool/Icons/_legFoot.xpm" %pm.internalVar(userScriptDir = True)
 
 class LegFoot(hingeJoint.HingeJoint):
 

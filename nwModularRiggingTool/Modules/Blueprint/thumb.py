@@ -11,6 +11,7 @@ CLASS_NAME = "Thumb"
 TITLE = "Thumb"
 DESCRIPTION = "Creates 4 joints, defining a thumb. Ideal use: thumb"
 ICON = "%s/Icons/_thumb.xpm" %os.environ["RIGGING_TOOL_ROOT"]
+#ICON = "%s/nwModularRiggingTool/Icons/_thumb.xpm" %pm.internalVar(userScriptDir = True)
 
 class Thumb(finger.Finger):
 

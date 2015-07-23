@@ -8,6 +8,7 @@ class InstallCharacter_UI:
 	def __init__(self):
 		
 		self.UIElements = {}
+		#self.directory = '%s/nwModularRiggingTool' %pm.internalVar(userScriptDir = True)
 		characters = utils.FindAllMayaFiles("/Characters")
 		
 		
@@ -42,6 +43,7 @@ class InstallCharacter_UI:
 	def InstallCharacter(self, *args):
 		characterName = pm.textScrollList(self.UIElements["characterList"], query = True, selectItem = True)[0]
 		
+		#characterFileName = "%s/Characters/%s.ma" %(self.directory, characterName)
 		characterFileName = "%s/Characters/%s.ma" %(os.environ["RIGGING_TOOL_ROOT"], characterName)
 		
 		baseNamespace = "Character__%s_" %characterName

@@ -10,6 +10,7 @@ CLASS_NAME = "Finger"
 TITLE = "Finger"
 DESCRIPTION = "Creates 5 joints, defining a finger. Ideal use: finger"
 ICON = "%s/Icons/_finger.xpm" %os.environ["RIGGING_TOOL_ROOT"]
+#ICON = "%s/nwModularRiggingTool/Icons/_finger.xpm" %pm.internalVar(userScriptDir = True)
 
 class Finger(blueprint.Blueprint):
 	

@@ -8,6 +8,7 @@ reload(utils)
 class GroupSelected:
 
     def __init__(self):
+        #self.directory = '%s/nwModularRiggingTool' %pm.internalVar(userScriptDir = True)
         self.objectsToGroup = []
 
 
@@ -92,6 +93,7 @@ class GroupSelected:
     
     
     def CreateTemporaryGroupRepresentation(self):
+        #controlGrpFile = "%s/ControlObjects/Blueprint/controlGroup_control.ma" %self.directory
         controlGrpFile = "%s/ControlObjects/Blueprint/controlGroup_control.ma" %os.environ["RIGGING_TOOL_ROOT"]
         
         pm.importFile(controlGrpFile)

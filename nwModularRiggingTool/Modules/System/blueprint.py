@@ -11,11 +11,12 @@ class Blueprint():
     
     def __init__(self, _moduleName, _userSpecifiedName, _jointInfo, _hookObjIn):
         
+        self.directory = '%s/nwModularRiggingTool' %pm.internalVar(userScriptDir = True)
+        
         self.moduleName = _moduleName
         self.userSpecifiedName = _userSpecifiedName
         
         self.moduleNamespace = "%s__%s" %(self.moduleName, self.userSpecifiedName)
-        
         
         self.containerName = "%s:module_container" %self.moduleNamespace
         
@@ -198,6 +199,7 @@ class Blueprint():
     def CreateTransationControlAtJoint(self, _joint):
         
         # Import control object
+        #posControlFile = "%s/ControlObjects/Blueprint/translation_control.ma" %self.directory
         posControlFile = "%s/ControlObjects/Blueprint/translation_control.ma" %os.environ["RIGGING_TOOL_ROOT"]
         pm.importFile(posControlFile)
         
@@ -297,6 +299,7 @@ class Blueprint():
     def CreateStretchyObject(self, _objectRelativeFilePath, _objectContainerName, _objectName, _parentJoint, _childJoint):
         
         # Import object
+        #objectFile = "%s%s" %(self.directory, _objectRelativeFilePath)
         objectFile = "%s%s" %(os.environ["RIGGING_TOOL_ROOT"], _objectRelativeFilePath)
         pm.importFile(objectFile)
         
@@ -327,6 +330,7 @@ class Blueprint():
     
     def InitializeModuleTransform(self, _rootPos):
         
+        #controlGrpFile = "%s/ControlObjects/Blueprint/controlGroup_control.ma" %self.directory
         controlGrpFile = "%s/ControlObjects/Blueprint/controlGroup_control.ma" %os.environ["RIGGING_TOOL_ROOT"]
         pm.importFile(controlGrpFile)
         
@@ -1153,6 +1157,7 @@ class Blueprint():
     
     def CreatePreferredAngleRepresentation(self, _joint, _scaleTarget, _childOfOrientationControl = False):
         
+        #preferredAngleRepFile = "%s/ControlObjects/Blueprint/preferredAngle_representation.ma" %self.directory
         preferredAngleRepFile = "%s/ControlObjects/Blueprint/preferredAngle_representation.ma" %os.environ["RIGGING_TOOL_ROOT"]
         pm.importFile(preferredAngleRepFile)
         
@@ -1202,6 +1207,7 @@ class Blueprint():
     
     def CreateSingleJointOrientationControlAtJoint(self, _joint):
         
+        #controlFile = "%s/ControlObjects/Blueprint/singleJointOrientation_control.ma" %self.directory
         controlFile = "%s/ControlObjects/Blueprint/singleJointOrientation_control.ma" %os.environ["RIGGING_TOOL_ROOT"]
         pm.importFile(controlFile)
         

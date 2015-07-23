@@ -10,6 +10,7 @@ CLASS_NAME = "HingeJoint"
 TITLE = "Hinge Joint"
 DESCRIPTION = "Creates 3 joints (the middle joint acting as a hinge joint). Ideal use: arm/leg"
 ICON = "%s/Icons/_hinge.xpm" %os.environ["RIGGING_TOOL_ROOT"]
+#ICON = "%s/nwModularRiggingTool/Icons/_hinge.xpm" %pm.internalVar(userScriptDir = True)
 
 class HingeJoint(blueprint.Blueprint):
 
