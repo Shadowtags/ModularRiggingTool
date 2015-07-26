@@ -134,7 +134,7 @@ class ControlModule:
 	def SetupBlueprintWeightBasedBlending(self):
 		settingsLocator = "%s:SETTINGS" %self.blueprintNamespace
 		
-		attributes = pm.listAttr(settingsLocator, keyable = True)
+		attributes = pm.listAttr(settingsLocator, keyable = False)
 		weightAttributes = []
 		for attr in attributes:
 			if attr.find("_weight") != -1:
@@ -163,7 +163,7 @@ class ControlModule:
 			pm.setAttr("%s.activeModule" %settingsLocator, 0)
 		
 		else:
-			pm.addAttr("%s.activeModule", edit = True, enumName = "%s:%s" %(currentEntries[0], newEntry))
+			pm.addAttr("%s.activeModule" %settingsLocator, edit = True, enumName = "%s:%s" %(currentEntries[0], newEntry))
 		
 		
 		utilityNodes = []
@@ -274,3 +274,11 @@ class ControlModule:
 			
 			pm.container(blueprintContainer, edit = True, publishAndBind = ["%s.%s" %(self.moduleContainer, publishedNames), publishedNames])
 			pm.container(characterContainer, edit = True, publishAndBind = ["%s.%s" %(blueprintContainer, publishedNames), publishedNames])
+	
+	
+	def UI(self, _parentLayout):
+		print "No custom user interface provided"
+	
+	
+	def UI_preferences(self, _parentLayout):
+		print "No custom user interface provided"

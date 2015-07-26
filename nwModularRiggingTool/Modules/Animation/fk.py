@@ -1,6 +1,6 @@
 import pymel.core as pm
 import System.controlModule as controlModule
-#reload(controlModule)
+reload(controlModule)
 import System.utils as utils
 reload(utils)
 
@@ -68,3 +68,20 @@ class FK(controlModule.ControlModule):
 		utils.AddNodeToContainer(_moduleContainer, containedNodes)
 		
 		return fkControl
+	
+	
+	def UI(self, _parentLayout):
+		jointsGrp = "%s:%s:joints_grp" %(self.blueprintNamespace, self.moduleNamespace)
+		joints = utils.FindJointChain(jointsGrp)
+		
+		joints.pop(0)
+		numJoints = len(joints)
+		
+		if numJoints > 1:
+			numJoints -= 1
+		
+		for i in range(numJoints):
+			fkControl = "%s_fkControl" %joints[i]
+			controlObjectInstance = controlObject.ControlObject(fkControl)
+			
+			controlObjectInstance.UI(_parentLayout)

@@ -121,3 +121,44 @@ class ControlObject:
 		
 		pm.parent(clusterHandle, self.controlObject, absolute = True)
 		pm.setAttr("%s.visibility" %clusterHandle, 0)
+	
+	
+	def UI(self, _parentLayout):
+		
+		pm.setParent(_parentLayout)
+		
+		pm.separator(style = "in", parent = _parentLayout)
+		
+		niceName = utils.StripAllNamespaces(self.controlObject)[1]
+		pm.text(label = niceName)
+		
+		pm.attrControlGrp(attribute = "%s.display" %self.controlObject, label = "Visibility")
+		
+		if self.translation == [True, True, True]:
+			pm.attrControlGrp(attribute = "%s.translate" %self.controlObject, label = "Translate")
+		else:
+			if self.translation[0] == True:
+				pm.attrControlGrp(attribute = "%s.translateX" %self.controlObject, label = "Translate X")
+			
+			if self.translation[1] == True:
+				pm.attrControlGrp(attribute = "%s.translateY" %self.controlObject, label = "Translate Y")
+			
+			if self.translation[2] == True:
+				pm.attrControlGrp(attribute = "%s.translateZ" %self.controlObject, label = "Translate Z")
+		
+		
+		if self.rotation == [True, True, True]:
+			pm.attrControlGrp(attribute = "%s.rotate" %self.controlObject, label = "Rotate")
+		else:
+			if self.rotation[0] == True:
+				pm.attrControlGrp(attribute = "%s.rotateX" %self.controlObject, label = "Rotate X")
+	
+			if self.rotation[1] == True:
+				pm.attrControlGrp(attribute = "%s.rotateY" %self.controlObject, label = "Rotate Y")
+	
+			if self.rotation[2] == True:
+				pm.attrControlGrp(attribute = "%s.rotateZ" %self.controlObject, label = "Rotate Z")
+		
+		
+		if self.globalScale == True:
+			pm.attrControlGrp(attribute = "%s.globalScale" %self.controlObject, label = "Scale")
