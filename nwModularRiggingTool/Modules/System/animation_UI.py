@@ -67,7 +67,7 @@ class Animation_UI:
 		value = pm.getAttr("%s:character_grp.animationControlVisibility" %self.selectedCharacter)
 		self.UIElements["animControlVisibility"] = pm.symbolCheckBox(image = "%s_visibility.xpm" %baseIconsDir, value = value, width = buttonWidth, height = buttonWidth, onCommand = self.ToggleAnimControlVisibility, offCommand = self.ToggleAnimControlVisibility, parent = self.UIElements["buttonColumnLayout"])
 		
-		self.UIElements["deleteModuleButton"] = pm.symbolButton(image = "%s_shelf_delete.xpm" %baseIconsDir, width = buttonWidth, height = buttonWidth, enable = False, parent = self.UIElements["buttonColumnLayout"])
+		self.UIElements["deleteModuleButton"] = pm.symbolButton(image = "%s_shelf_delete.xpm" %baseIconsDir, width = buttonWidth, height = buttonWidth, enable = False, command = self.DeleteSelectedModule, parent = self.UIElements["buttonColumnLayout"])
 		self.UIElements["duplicateModuleButton"] = pm.symbolButton(image = "%s_duplicate.xpm" %baseIconsDir, width = buttonWidth, height = buttonWidth, enable = False, parent = self.UIElements["buttonColumnLayout"])
 		
 		
@@ -414,3 +414,30 @@ class Animation_UI:
 	def IconColor_callback(self, _moduleNamespace, *args):
 		value = pm.colorIndexSliderGrp(self.UIElements["iconColor"], query = True, value = True) - 1
 		pm.setAttr("%s:%s:module_grp.overrideColor" %(self.selectedBlueprintModule, _moduleNamespace), value)
+	
+	
+	def DeleteSelectedModule(self, *args):
+		selectedModule = pm.textScrollList(self.UIElements["animationModule_textScroll"], query = True, selectItem = True)[0]
+		
+		selectedModuleNamespace = "%s:%s" %(self.selectedBlueprintModule, selectedModule)
+		
+		moduleNameInfo = utils.FindAllModuleNames("/Modules/Animation")
+		modules = moduleNameInfo[0]
+		moduleNames = moduleNameInfo[1]
+		
+		selectedModuleName = selectedModule.rpartition("_")[0]
+		
+		if selectedModuleName in moduleNames:
+			moduleIndex = moduleNames.index(selectedModuleName)
+			module = modules[moduleIndex]
+			
+			mod = __import__("Animation.%s" %module, (), (), [module])
+			reload(mod)
+			
+			moduleClass = getattr(mod, mod.CLASS_NAME)
+			
+			moduleInst = moduleClass(selectedModuleNamespace)
+			
+			moduleInst.Uninstall()
+			
+			self.RefreshAnimationModuleList()

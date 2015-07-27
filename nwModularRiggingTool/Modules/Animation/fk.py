@@ -1,6 +1,6 @@
 import pymel.core as pm
 import System.controlModule as controlModule
-reload(controlModule)
+#reload(controlModule)
 import System.utils as utils
 reload(utils)
 

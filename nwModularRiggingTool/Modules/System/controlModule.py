@@ -29,7 +29,7 @@ class ControlModule:
 		
 		self.moduleContainer = "%s:%s:module_container" %(self.blueprintNamespace, self.moduleNamespace)
 	
-	
+	# DERIVED CLASS METHODS
 	def Install_custom(self, _joints, _moduleGrp, _moduleContainer):
 		print "Install_custom() method not implemented bt derived module"
 
@@ -37,7 +37,16 @@ class ControlModule:
 	def CompatibleBlueprintModules(self):
 		return ("-1")
 	
+	def UI(self, _parentLayout):
+		print "No custom user interface provided"
+
+
+	def UI_preferences(self, _parentLayout):
+		print "No custom user interface provided"
 	
+	
+	
+	# BASE CLASS METHODS
 	def Install(self):
 		nodes = self.Install_init()
 		joints = nodes[0]
@@ -276,9 +285,77 @@ class ControlModule:
 			pm.container(characterContainer, edit = True, publishAndBind = ["%s.%s" %(blueprintContainer, publishedNames), publishedNames])
 	
 	
-	def UI(self, _parentLayout):
-		print "No custom user interface provided"
-	
-	
-	def UI_preferences(self, _parentLayout):
-		print "No custom user interface provided"
+	def Uninstall(self):
+		
+		characterContainer = "%s:character_container" %self.characterNamespace
+		blueprintContainer = "%s:module_container" %self.blueprintNamespace
+		moduleContainer = self.moduleContainer
+		
+		containers = [characterContainer, blueprintContainer, moduleContainer]
+		for c in containers:
+			pm.lockNode(c, lock = False, lockUnpublished = False)
+		
+		containers.pop()
+		
+		blueprintJointsGrp = "%s:blueprint_joints_grp" %self.blueprintNamespace
+		blueprintJoints = utils.FindJointChain(blueprintJointsGrp)
+		blueprintJoints.pop(0)
+		
+		settingsLocator = "%s:SETTINGS" %self.blueprintNamespace
+		
+		connections = pm.listConnections("%s_addRotations" %blueprintJoints[0], source = True, destination = False)
+		if len(connections) == 2:
+			pm.setAttr("%s.controlModulesInstalled" %blueprintJointsGrp, False)
+		
+		publishedNames = pm.container(moduleContainer, query = True, publishName = True)
+		publishedNames.sort()
+		
+		for name in publishedNames:
+			outerPublishedNames = pm.container(characterContainer, query = True, publishName = True)
+			
+			if name in outerPublishedNames:
+				pm.container(characterContainer, edit = True, unbindAndUnpublish = "%s.%s" %(blueprintContainer, name))
+				pm.container(blueprintContainer, edit = True, unbindAndUnpublish = "%s.%s" %(moduleContainer, name))
+		
+		pm.delete(moduleContainer)
+		
+		weightAttributeName = "%s_weight" %self.moduleNamespace
+		pm.deleteAttr("%s.%s" %(settingsLocator, weightAttributeName))
+		
+		attributes = pm.listAttr(settingsLocator, keyable = False)
+		weightAttributes = []
+		for attr in attributes:
+			if attr.find("_weight") != -1:
+				weightAttributes.append(attr)
+		
+		
+		totalWeight = 0
+		for attr in weightAttributes:
+			totalWeight += pm.getAttr("%s.%s" %(settingsLocator, attr))
+		
+		pm.setAttr("%s.creationPoseWeight" %settingsLocator, 1-totalWeight)
+		
+		currentEntries = pm.attributeQuery("activeModule", node = settingsLocator, listEnum = True)
+		currentEntriesList = currentEntries[0].split(":")
+		
+		ourEntry = self.moduleNamespace
+		
+		currentEntriesString = ""
+		for entry in currentEntriesList:
+			if entry != ourEntry:
+				currentEntriesString += "%s:" %entry
+		
+		
+		if currentEntriesString == "":
+			currentEntriesString = "None"
+		
+		pm.addAttr("%s.activeModule" %settingsLocator, edit = True, enumName = currentEntriesString)
+		
+		pm.setAttr("%s.activeModule" %settingsLocator, 0)
+		
+		pm.namespace(setNamespace = self.blueprintNamespace)
+		pm.namespace(removeNamespace = self.moduleNamespace)
+		pm.namespace(setNamespace = ":")
+		
+		for c in containers:
+			pm.lockNode(c, lock = True, lockUnpublished = True)
