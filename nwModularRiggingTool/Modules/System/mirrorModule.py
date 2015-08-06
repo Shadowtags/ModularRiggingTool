@@ -205,13 +205,13 @@ class MirrorModule:
         
         pm.rowColumnLayout(mirrorRowColumn, numberOfColumns = 3, columnAttach = (1, 'right', 0), columnWidth = [(1, mirrorSettings_textWidth), (2, mirrorSettings_columnWidth), (3, mirrorSettings_columnWidth)], parent = self.UIElements["topColumnLayout"])
         
-        pm.text(label = "Rotation Mirror Function: ", parent = mirrorRowColumn)
+        pm.text(label = "Rotation: ", parent = mirrorRowColumn)
         
         self.UIElements[rotationRadioCollection] = pm.radioCollection(parent = mirrorRowColumn)
         pm.radioButton(behaviourName, label = "Behaviour", select = True)
         pm.radioButton(orientationName, label = "orientation", select = False)
         
-        pm.text(label = "Translation Mirror Function: ", parent = mirrorRowColumn)
+        pm.text(label = "Translation: ", parent = mirrorRowColumn)
         
         self.UIElements[translationRadioCollection] = pm.radioCollection(parent = mirrorRowColumn)
         pm.radioButton(mirroredName, label = "Mirrored", select = True)
