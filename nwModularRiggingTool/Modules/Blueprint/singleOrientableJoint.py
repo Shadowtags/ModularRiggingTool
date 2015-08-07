@@ -9,8 +9,8 @@ reload(utils)
 CLASS_NAME = "SingleOrientableJoint"
 TITLE = "Single Orientable Joint"
 DESCRIPTION = "Creates a single joint, with control for position and orientation. Once created (locked) the joint can only rotate. Ideal use: wrist"
-ICON = "%s/Icons/_singleOrientable.xpm" %os.environ["RIGGING_TOOL_ROOT"]
-#ICON = "%s/nwModularRiggingTool/Icons/_singleOrientable.xpm" %pm.internalVar(userScriptDir = True)
+ICON = "%s/Icons/_singleOrientable.png" %os.environ["RIGGING_TOOL_ROOT"]
+#ICON = "%s/nwModularRiggingTool/Icons/_singleOrientable.png" %pm.internalVar(userScriptDir = True)
 
 class SingleOrientableJoint(blueprint.Blueprint):
 

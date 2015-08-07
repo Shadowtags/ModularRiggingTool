@@ -54,21 +54,26 @@ class Blueprint_UI:
         
         
         scenePublished = pm.objExists("Scene_Published")
-        sceneUnlocked = not pm.objExists("Scene_Locked") and not scenePublished
+        blueprintsUnlocked = not pm.objExists("Blueprints_Locked") and not scenePublished
+        controlsUnlocked = not blueprintsUnlocked and not pm.objExists("Controls_Locked")
         
         
-        pm.tabLayout(self.UIElements["tabs"], edit = True, tabLabelIndex = ([1, 'Modules'], [2, 'Templates']), enable = sceneUnlocked )
+        
+        pm.tabLayout(self.UIElements["tabs"], edit = True, tabLabelIndex = ([1, 'Modules'], [2, 'Templates']), enable = blueprintsUnlocked )
         
         
         self.UIElements["lockPublishColumn"] = pm.columnLayout(adjustableColumn = True, columnAlign = 'center', rowSpacing = 3, parent = self.UIElements["topLevelColumn"])
         
         pm.separator(style = 'in', parent = self.UIElements["lockPublishColumn"])
         
-        self.UIElements["lockBtn"] = pm.button(label = 'Lock', enable = sceneUnlocked, command = self.Lock, parent = self.UIElements["lockPublishColumn"])
+        self.UIElements["lockBtn_rowLayout"] = pm.rowLayout(numberOfColumns = 2,  parent = self.UIElements["lockPublishColumn"])
+        
+        self.UIElements["lockBlueprintsBtn"] = pm.iconTextButton(style='iconOnly', image = "%s/Icons/_lockBlueprints.png" %os.environ["RIGGING_TOOL_ROOT"], enable = blueprintsUnlocked, command = self.Lock, parent = self.UIElements["lockBtn_rowLayout"])
+        self.UIElements["lockControlsBtn"] = pm.iconTextButton(style='iconOnly', image = "%s/Icons/_lockControls.png" %os.environ["RIGGING_TOOL_ROOT"], enable = controlsUnlocked, command = self.Lock, parent = self.UIElements["lockBtn_rowLayout"])
         
         pm.separator(style = 'in', parent = self.UIElements["lockPublishColumn"])
         
-        self.UIElements["publishBtn"] = pm.button(label = "Publish", enable = not sceneUnlocked and not scenePublished, command = self.Publish, parent = self.UIElements["lockPublishColumn"])
+        self.UIElements["publishBtn"] = pm.iconTextButton(style='iconOnly', image = "%s/Icons/_publishCharacter.png" %os.environ["RIGGING_TOOL_ROOT"], enable = not blueprintsUnlocked and not scenePublished, command = self.Publish, parent = self.UIElements["lockPublishColumn"])
         
         
         
@@ -348,7 +353,7 @@ class Blueprint_UI:
         
         
         # Scene completely locked
-        sceneLockedLocator = pm.spaceLocator(name = "Scene_Locked")
+        sceneLockedLocator = pm.spaceLocator(name = "Blueprints_Locked")
         pm.setAttr("%s.visibility" %sceneLockedLocator, 0)
         pm.lockNode(sceneLockedLocator, lock = True, lockUnpublished = True)
         
@@ -357,14 +362,15 @@ class Blueprint_UI:
         self.ModifySelected()
         
         pm.tabLayout(self.UIElements["tabs"], edit = True, enable = False)
-        pm.button(self.UIElements["lockBtn"], edit = True, enable = False)
-        pm.button(self.UIElements["publishBtn"], edit = True, enable = True)
+        pm.iconTextButton(self.UIElements["lockBlueprintsBtn"], edit = True, enable = False)
+        pm.iconTextButton(self.UIElements["lockControlsBtn"], edit = True, enable = True)
+        pm.iconTextButton(self.UIElements["publishBtn"], edit = True, enable = False)
     
     
     def ModifySelected(self, *args):
         
         # Only proceed if the scene haven't been locked down
-        if not pm.objExists("Scene_Locked"):
+        if not pm.objExists("Blueprints_Locked"):
             
             if pm.checkBox(self.UIElements["symmetryMoveCheckBox"], query = True, value = True):
                 self.DeleteSymmetryMoveExpressions()
@@ -1190,7 +1196,7 @@ class Blueprint_UI:
     
     def Publish(self, *args):
         
-        result = pm.confirmDialog(messageAlign = "center", title = "Publish Character", message = "The action of publishing cannot be undone. \nAre you sure you wish to continue?", button = ["Accept", "Cancel"], defaultButton = "Accept", cancelButton = "Cancel", dismissString = "Cancel")
+        result = pm.confirmDialog(messageAlign = "center", title = "Publish Character", message = "The action of publishing cannot be undone. Make sure the geometry have been attached to the rig before proceeding. \nAre you sure you wish to continue?", button = ["Accept", "Cancel"], defaultButton = "Accept", cancelButton = "Cancel", dismissString = "Cancel")
         
         if result != "Accept":
             return

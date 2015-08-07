@@ -405,7 +405,7 @@ class Animation_UI:
 				
 				moduleInst.UI_preferences(self.UIElements["moduleSpecificControls_preferenceColumn"])
 				
-				pm.button(self.UIElements["matchingButton"], edit = True, enable = matchButtonEnable)
+				pm.button(self.UIElements["matchingButton"], edit = True, enable = matchButtonEnable, command = moduleInst.Match)
 			
 			self.previousBlueprintModule = self.selectedBlueprintModule
 			self.previousAnimationModule = currentlySelectedModuleNamespace

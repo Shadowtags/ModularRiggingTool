@@ -11,8 +11,8 @@ reload(utils)
 CLASS_NAME = "Spline"
 TITLE = "Spline"
 DESCRIPTION = "Creates an optionally interpolating, joint-count adjustable, spline. Ideal use: spine, neck/head, tails, tentacles etc."
-ICON = "%s/Icons/_spline.xpm" %os.environ["RIGGING_TOOL_ROOT"]
-#ICON = "%s/nwModularRiggingTool/Icons/_spline.xpm" %pm.internalVar(userScriptDir = True)
+ICON = "%s/Icons/_spline.png" %os.environ["RIGGING_TOOL_ROOT"]
+#ICON = "%s/nwModularRiggingTool/Icons/_spline.png" %pm.internalVar(userScriptDir = True)
 
 class Spline(blueprint.Blueprint):
 

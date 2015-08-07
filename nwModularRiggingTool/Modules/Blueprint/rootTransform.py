@@ -12,8 +12,8 @@ reload(utils)
 CLASS_NAME = "RootTransform"
 TITLE = "Root Transform"
 DESCRIPTION = "Creates a single joint, with control for position and orientation. Once created (locked) the joint can rotate, translate and scale. Ideal use: global/master control"
-ICON = "%s/Icons/_rootTxfrm.xpm" %os.environ["RIGGING_TOOL_ROOT"]
-#ICON = "%s/nwModularRiggingTool/Icons/_rootTxfrm.xpm" %pm.internalVar(userScriptDir = True)
+ICON = "%s/Icons/_rootTxfrm.png" %os.environ["RIGGING_TOOL_ROOT"]
+#ICON = "%s/nwModularRiggingTool/Icons/_rootTxfrm.png" %pm.internalVar(userScriptDir = True)
 
 class RootTransform(singleOrientableJoint.SingleOrientableJoint):
 

@@ -44,6 +44,9 @@ class ControlModule:
 	def UI_preferences(self, _parentLayout):
 		print "No custom user interface provided"
 	
+	def Match(self, *args):
+		print "No matching functionality provided"
+	
 	
 	
 	# BASE CLASS METHODS
