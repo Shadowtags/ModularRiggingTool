@@ -29,7 +29,6 @@ class ModuleMaintenance:
 			
 			moduleList.append( (mod, mod.CLASS_NAME, compatabileBlueprintModules))
 		
-		
 		return moduleList
 	
 	

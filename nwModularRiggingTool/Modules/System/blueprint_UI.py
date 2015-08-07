@@ -53,13 +53,17 @@ class Blueprint_UI:
         self.InitializeTemplatesTab(tabHeight, tabWidth)
         
         
+        # Controls tab
+        self.InitializeControlsTab(tabHeight, tabWidth)
+        
+        
         scenePublished = pm.objExists("Scene_Published")
         blueprintsUnlocked = not pm.objExists("Blueprints_Locked") and not scenePublished
         controlsUnlocked = not blueprintsUnlocked and not pm.objExists("Controls_Locked")
         
         
         
-        pm.tabLayout(self.UIElements["tabs"], edit = True, tabLabelIndex = ([1, 'Modules'], [2, 'Templates']), enable = blueprintsUnlocked )
+        pm.tabLayout(self.UIElements["tabs"], edit = True, tabLabelIndex = ([1, 'Modules'], [2, 'Templates'], [3, 'Controls']), enable = blueprintsUnlocked )
         
         
         self.UIElements["lockPublishColumn"] = pm.columnLayout(adjustableColumn = True, columnAlign = 'center', rowSpacing = 3, parent = self.UIElements["topLevelColumn"])
@@ -68,12 +72,12 @@ class Blueprint_UI:
         
         self.UIElements["lockBtn_rowLayout"] = pm.rowLayout(numberOfColumns = 2,  parent = self.UIElements["lockPublishColumn"])
         
-        self.UIElements["lockBlueprintsBtn"] = pm.iconTextButton(style='iconOnly', image = "%s/Icons/_lockBlueprints.png" %os.environ["RIGGING_TOOL_ROOT"], enable = blueprintsUnlocked, command = self.Lock, parent = self.UIElements["lockBtn_rowLayout"])
-        self.UIElements["lockControlsBtn"] = pm.iconTextButton(style='iconOnly', image = "%s/Icons/_lockControls.png" %os.environ["RIGGING_TOOL_ROOT"], enable = controlsUnlocked, command = self.Lock, parent = self.UIElements["lockBtn_rowLayout"])
+        self.UIElements["lockBlueprintsBtn"] = pm.iconTextButton(style='iconOnly', image = "%s/Icons/_lockBlueprints.png" %os.environ["RIGGING_TOOL_ROOT"], enable = blueprintsUnlocked, command = self.LockBlueprint, parent = self.UIElements["lockBtn_rowLayout"])
+        self.UIElements["lockControlsBtn"] = pm.iconTextButton(style='iconOnly', image = "%s/Icons/_lockControls.png" %os.environ["RIGGING_TOOL_ROOT"], enable = controlsUnlocked, command = self.LockControls, parent = self.UIElements["lockBtn_rowLayout"])
         
         pm.separator(style = 'in', parent = self.UIElements["lockPublishColumn"])
         
-        self.UIElements["publishBtn"] = pm.iconTextButton(style='iconOnly', image = "%s/Icons/_publishCharacter.png" %os.environ["RIGGING_TOOL_ROOT"], enable = not blueprintsUnlocked and not scenePublished, command = self.Publish, parent = self.UIElements["lockPublishColumn"])
+        self.UIElements["publishBtn"] = pm.iconTextButton(style='iconOnly', image = "%s/Icons/_publishCharacter.png" %os.environ["RIGGING_TOOL_ROOT"], enable = not blueprintsUnlocked and not controlsUnlocked and not scenePublished, command = self.Publish, parent = self.UIElements["lockPublishColumn"])
         
         
         
@@ -185,6 +189,18 @@ class Blueprint_UI:
         pm.separator(style = 'in', parent = self.UIElements["templatesColumn"])
     
     
+    def InitializeControlsTab(self, _tabHeight, _tabWidth):
+        
+        self.UIElements["controlsColumn"] = pm.columnLayout(adjustableColumn = True, rowSpacing = 3, columnAttach = ["both", 0], parent = self.UIElements["tabs"])
+        
+        self.UIElements["controlsFrame"] = pm.frameLayout(height = (_tabHeight - 104), collapsable = False, borderVisible = False, labelVisible = False, parent = self.UIElements["controlsColumn"])
+        self.UIElements["controlsList_scroll"] = pm.scrollLayout(horizontalScrollBarThickness = 0, parent = self.UIElements["controlsFrame"])
+        self.UIElements["controlsList_column"] = pm.columnLayout(adjustableColumn = True, rowSpacing = 2, parent = self.UIElements["controlsList_scroll"])
+        
+        pm.separator(style = 'in', parent = self.UIElements["controlsList_column"])
+        
+        self.UIElements["controlsTextScrollList"] = pm.textScrollList(parent = self.UIElements["controlsList_column"])
+        
     
     def CreateModuleInstallButton(self, _module):
         
@@ -275,18 +291,18 @@ class Blueprint_UI:
         
         return False
     
-    def Lock(self, *args):
+    def LockBlueprint(self, *args):
         
         # Recommend creation of root transform if not already implemented
         if not self.IsRootTransformInstalled():
-            result = pm.confirmDialog(messageAlign = "center", title = "Lock Character", message = "We have detected that you don't have a root transform (global transform). \nWould you like to go back and edit your blueprint setup? \n\n(It is recommended that all rigs have at least one global control module).", button = ["Yes", "No"], defaultButton = "Yes", dismissString = "Yes")
+            result = pm.confirmDialog(messageAlign = "center", title = "Lock Blueprints", message = "We have detected that you don't have a root transform (global transform). \nWould you like to go back and edit your blueprint setup? \n\n(It is recommended that all rigs have at least one global control module).", button = ["Yes", "No"], defaultButton = "Yes", dismissString = "Yes")
             
             if result == "Yes":
                 return
         
         
         # Give user warning that locking is permanent
-        result = pm.confirmDialog(messageAlign = 'center', title = 'Lock Blueprint', button = ['Accept', 'Cancel'], defaultButton = 'Accept', cancelButton = 'Cancel', dismissString = 'Cancel', message = "The action of locking a character will convert the current blueprint modules to joints. \nThis action cannot be undone. \nModifications to the blueprint system cannot be made after this point. \n\nDo you wish to continue?")
+        result = pm.confirmDialog(messageAlign = 'center', title = 'Lock Blueprints', button = ['Accept', 'Cancel'], defaultButton = 'Accept', cancelButton = 'Cancel', dismissString = 'Cancel', message = "The action of locking a character will convert the current blueprint modules to joints. \nThis action cannot be undone. \nModifications to the blueprint system cannot be made after this point. \n\nDo you wish to continue?")
         
         if result != 'Accept':
             return
@@ -352,7 +368,7 @@ class Blueprint_UI:
             module[0].Lock_phase3(hookObject)
         
         
-        # Scene completely locked
+        # Blueprints completely locked
         sceneLockedLocator = pm.spaceLocator(name = "Blueprints_Locked")
         pm.setAttr("%s.visibility" %sceneLockedLocator, 0)
         pm.lockNode(sceneLockedLocator, lock = True, lockUnpublished = True)
@@ -361,10 +377,30 @@ class Blueprint_UI:
         pm.select(clear = True)
         self.ModifySelected()
         
-        pm.tabLayout(self.UIElements["tabs"], edit = True, enable = False)
+        pm.tabLayout(self.UIElements["tabs"], edit = True, selectTabIndex = 3)
+        pm.columnLayout(self.UIElements["moduleColumn"], edit = True, enable = False)
+        pm.columnLayout(self.UIElements["templatesColumn"], edit = True, enable = False)
         pm.iconTextButton(self.UIElements["lockBlueprintsBtn"], edit = True, enable = False)
         pm.iconTextButton(self.UIElements["lockControlsBtn"], edit = True, enable = True)
         pm.iconTextButton(self.UIElements["publishBtn"], edit = True, enable = False)
+    
+    
+    def LockControls(self, *args):
+        
+        # Controls completely locked
+        sceneLockedLocator = pm.spaceLocator(name = "Controls_Locked")
+        pm.setAttr("%s.visibility" %sceneLockedLocator, 0)
+        pm.lockNode(sceneLockedLocator, lock = True, lockUnpublished = True)
+        
+        # Force update scene
+        pm.select(clear = True)
+        self.ModifySelected()
+        
+        pm.tabLayout(self.UIElements["tabs"], edit = True, selectTabIndex = 1)
+        pm.tabLayout(self.UIElements["tabs"], edit = True, enable = False)
+        pm.iconTextButton(self.UIElements["lockBlueprintsBtn"], edit = True, enable = False)
+        pm.iconTextButton(self.UIElements["lockControlsBtn"], edit = True, enable = False)
+        pm.iconTextButton(self.UIElements["publishBtn"], edit = True, enable = True)
     
     
     def ModifySelected(self, *args):
@@ -1213,8 +1249,8 @@ class Blueprint_UI:
                 pm.confirmDialog(title = "Publish Character", message = "Character already exists with that name. Aborting publish.", button = ["Accept"], defaultButton = "Accept")
                 return
             
-            pm.lockNode("Scene_Locked", lock = False, lockUnpublished = False)
-            pm.delete("Scene_Locked")
+            pm.lockNode("Blueprints_Locked", lock = False, lockUnpublished = False)
+            pm.delete("Blueprints_Locked")
             
             pm.namespace(setNamespace = ":")
             namespaces = pm.namespaceInfo(listOnlyNamespaces = True)
